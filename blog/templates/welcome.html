@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    p {
+        position:
+            fixed;
+        top: 70px;
+        right: 200px;
+    }
+</style>
+
+{% if email %}
+<div class='user'>
+    <p>Welcome, {{email}}</p>
+</div>
+{% else %}
+    <h3> Welcome, Guest. Please log in or register to view secret content</h3>
+{% endif %}
+{% endblock %}
