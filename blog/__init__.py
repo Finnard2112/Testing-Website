@@ -3,17 +3,20 @@ import psycopg2
 import functools
 from tkinter.filedialog import test
 from flask import Flask, render_template, request, url_for, redirect, session, flash, g, Blueprint
+import flask
+from datetime import datetime
+import json
 
-def create_app(test_config = None):
-    app = Flask(__name__, instance_relative_config= True)
+
+def create_app(test_config=None):
+    app = Flask(__name__, instance_relative_config=True)
     CAT_FOLDER = os.path.join('static', 'cat_photo')
 
     app.config.from_mapping(
-        SECRET_KEY = 'dev',
+        SECRET_KEY='dev',
         DATABASE=os.path.join(app.instance_path, 'blog.postgre'),
-        UPLOAD_FOLDER = CAT_FOLDER
+        UPLOAD_FOLDER=CAT_FOLDER
     )
-
 
     if test_config is None:
         # load the instance config, if it exists, when not testing
@@ -28,7 +31,6 @@ def create_app(test_config = None):
     except OSError:
         pass
 
-
     def get_db_connection():
         conn = psycopg2.connect(host='localhost',
                                 database='postgres',
@@ -40,7 +42,7 @@ def create_app(test_config = None):
     def welcome():
         email = session.get('email')
         return render_template('welcome.html', email=email)
-    
+
     @app.route('/register/', methods=('GET', 'POST'))
     def register():
         if request.method == 'POST':
@@ -53,7 +55,6 @@ def create_app(test_config = None):
                     error = 'Email is required.'
                 elif not password:
                     error = 'Password is required.'
-                
 
                 if error is None:
                     conn = get_db_connection()
@@ -98,13 +99,13 @@ def create_app(test_config = None):
 
                 flash(error)
             except (Exception, psycopg2.Error) as error:
-                print( error)
+                print(error)
             finally:
                 cur.close()
                 conn.close()
 
         return render_template('login.html')
-    
+
     @app.before_request
     def load_logged_in_user():
         email = session.get('email')
@@ -131,11 +132,65 @@ def create_app(test_config = None):
             return view(**kwargs)
         return wrapped_view
 
-    @app.route('/autotest_registration')
+    @app.route('/autotest_registration', methods=('GET', 'POST', 'DELETE'))
     @login_required
-    def secret():
-        full_filename = os.path.join(app.config['UPLOAD_FOLDER'], 'maine-coon-scaled.jpg')
-        return render_template('secret.html', user_image = full_filename)
-
-    
+    def autotest():
+        conn = get_db_connection()
+        cur = conn.cursor()
+        if request.method == 'POST':
+            try:
+                if (request.content_type != 'application/json'):
+                    email = session.get('email')
+                    startdate = request.form['start_date']
+                    startdate += " " + request.form['start_time']
+                    enddate = request.form['end_date']
+                    enddate += " " + request.form['end_time']
+                    cur.execute('INSERT INTO tests_registration (email, startdate, enddate)'
+                                'VALUES (%s, %s, %s)',
+                                (email, startdate, enddate))
+                    conn.commit()
+                    return redirect(url_for('autotest'))
+                else:
+                    json_data = flask.request.json
+                    cur.execute('UPDATE tests_registration '
+                                'SET startdate = %s, '
+                                'enddate = %s '
+                                'WHERE email = %s AND startdate = %s',
+                                (json_data["start"][4:25], json_data["end"][4:25], json_data["title"], json_data["oldstart"][4:25]))
+                    conn.commit()
+                    return redirect(url_for('autotest'))
+            except (Exception, psycopg2.Error) as error:
+                print(error)
+            finally:
+                cur.close()
+                conn.close()
+                return redirect(url_for('autotest'))
+        elif (request.method == 'DELETE'):
+            json_data = flask.request.json
+            cur.execute('DELETE FROM tests_registration '
+                                'WHERE id = %s',
+                                (json_data["id"]))
+            conn.commit()
+            return redirect(url_for('autotest'))
+        else:
+            events = list()
+            cur.execute('SELECT * FROM tests_registration;')
+            tests = cur.fetchall()
+            for entry in tests:
+                editable = False
+                if(session.get("email") == entry[1]):
+                    editable = True
+                events.append({
+                    "id": entry[0],
+                    "title": entry[1],
+                    "start": entry[2].strftime("%Y-%m-%dT%H:%M:%S"),
+                    "end": entry[3].strftime("%Y-%m-%dT%H:%M:%S"),
+                    "editable": editable
+                })
+            email = session["email"]
+            events=str(json.dumps(events)).replace("&#34:", "'")
+            cur.close()
+            conn.close()
+            return render_template('test_registration.html', events=events, email=email)
+        
     return app

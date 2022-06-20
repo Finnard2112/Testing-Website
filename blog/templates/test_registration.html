@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link href="https://fonts.googleapis.com/css?family=Roboto:300,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Poppins:300,400,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/icomoonStyle.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/coreMain.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/dayGridmain.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/calendarStyle.css') }}">
+  <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/css/bootstrap.min.css'>
+  <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.8.1/css/all.min.css'>
+  <link rel='stylesheet'
+    href='https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css'>
+  <link rel="stylesheet" href="{{ url_for('static', filename='CSS/style.css') }}">
+  <title>Test Registration</title>
+</head>
+
+<body>
+  <div class="container-fluid">
+    <div class="content">
+      <div id='calendar'></div>
+    </div>
+    <div class="container-fluid">
+      <form method="post">
+        <div class="row">
+          <div class="col-sm">
+            <div class="content">
+              <h5>Testing Time Starts</h5>
+              <div class="form-group">
+                <label>Date</label>
+                <div class="input-group date" id="datepicker">
+                  <input class="form-control" placeholder="MM/DD/YYYY" name="start_date" required />
+                  <span class="input-group-append input-group-addon"><span class="input-group-text"><i
+                        class="fa fa-calendar"></i></span></span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Time</label>
+                <div class="input-group time" id="timepicker">
+                  <input class="form-control" placeholder="HH:MM AM/PM" name="start_time" required />
+                  <span class="input-group-append input-group-addon"><span class="input-group-text"><i
+                        class="fa fa-clock"></i></span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm">
+            <div class="content">
+              <h5>Testing Time Ends</h5>
+              <div class="form-group">
+                <label>Date</label>
+                <div class="input-group date" id="datepicker2">
+                  <input class="form-control" placeholder="MM/DD/YYYY" name="end_date" required />
+                  <span class="input-group-append input-group-addon"><span class="input-group-text"><i
+                        class="fa fa-calendar"></i></span></span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Time</label>
+                <div class="input-group time" id="timepicker2">
+                  <input class="form-control" placeholder="HH:MM AM/PM" name="end_time" required />
+                  <span class="input-group-append input-group-addon"><span class="input-group-text"><i
+                        class="fa fa-clock"></i></span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pt-1 mb-4">
+          <button class="btn btn-info btn-lg btn-block" type="submit">Submit</button>
+        </div>
+        <form>
+    </div>
+  </div>
+  <script src="{{ url_for('static', filename='JS/coreMain.js') }}"></script>
+  <script src="{{ url_for('static', filename='JS/interactionMain.js') }}"></script>
+  <script src="{{ url_for('static', filename='JS/daygridMain.js') }}"></script>
+  <script>
+    let current = new Date();
+    const month = String(current.getMonth() + 1).padStart(2, '0');
+    const day = String(current.getDate()).padStart(2, '0');
+    let cDate = current.getFullYear() + '-' + month + '-' + day;
+    var clickedDelete = false;
+    document.addEventListener('DOMContentLoaded', function () {
+      var calendarEl = document.getElementById('calendar');
+      let current = new Date();
+      var calendar = new FullCalendar.Calendar(calendarEl, {
+        plugins: ['interaction', 'dayGrid'],
+        defaultDate: cDate,
+        eventLimit: true, // allow "more" link when too many events
+        height: "70%",
+        events: {{events | safe}},
+        eventClick: function (info) {
+          if (clickedDelete == true) {
+            clickedDelete = false;
+          } else {
+            var eventObj = info.event;
+            alert("Testing starts: " + eventObj.start + "; Testing ends: " + eventObj.end);
+            info.jsEvent.preventDefault(); // don't let the browser navigate
+          }
+
+        },
+        eventOverlap: function (stillEvent, movingEvent) {
+          return false;
+        },
+        eventDrop: function (info) {
+          alert(info.event.title + " was dropped on " + info.event.start.toString());
+          if (!confirm("Are you sure about this change?")) {
+            info.revert();
+          } else {
+            var url = "http://127.0.0.1:5000/autotest_registration";
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", url, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify({
+              title: info.event.title,
+              start: info.event.start.toString(),
+              oldstart: info.oldEvent.start.toString(),
+              end: info.event.end.toString(),
+            }));
+          }
+        },
+        eventRender: function (info) {
+          if ("{{email}}" == info.event.title) {
+            $(info.el).prepend("<span style=\"color:#fff;font-weight:bold; text-shadow: 2px 2px 4px #000000;\" class='removebtn'>&#10006</span>");
+          } 
+          $(info.el).find(".removebtn").click(function () {
+            if (confirm("Do you want to delete?")) {
+              clickedDelete = true;
+              var url = "http://127.0.0.1:5000/autotest_registration";
+              var xhr = new XMLHttpRequest();
+              xhr.open("DELETE", url, true);
+              xhr.setRequestHeader('Content-Type', 'application/json');
+              xhr.send(JSON.stringify({
+                id: info.event.id
+              }));
+              info.event.remove();
+            } else {
+              clickedDelete = true;
+            }
+          });
+        }
+      });
+
+      calendar.setOption('height', 600);
+      // calendar.addEvent();
+
+      calendar.render();
+
+
+    });
+  </script>
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script>
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js'></script>
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.min.js'></script>
+  <script
+    src='https://cdnjs.cloudflare.com/ajax/libs/eonasdan-bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js'>
+  </script>
+  <script src="{{ url_for('static', filename='JS/script.js') }}"></script>
+</body>
+
+</html>
