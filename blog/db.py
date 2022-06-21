@@ -11,20 +11,34 @@ conn = psycopg2.connect(
 cur = conn.cursor()
 
 # Execute a command: this creates a new table
-cur.execute('DROP TABLE IF EXISTS tests_registration;')
-cur.execute('CREATE TABLE tests_registration (id serial PRIMARY KEY,'
-                                'email varchar(250) NOT NULL,'
-                                 'startDate timestamp NOT NULL,'
-                                 'endDate timestamp NOT NULL);'
+cur.execute('DROP TABLE IF EXISTS userinfo;')
+cur.execute('CREATE TABLE userinfo (id serial PRIMARY KEY,'
+                                'email varchar(250) UNIQUE NOT NULL,'
+                                 'password varchar(250) NOT NULL,'
+                                 'role varchar(250) NOT NULL);'
                                  )
 
 # Insert data into the table
 
-cur.execute('INSERT INTO tests_registration (email, startDate, endDate)'
+cur.execute('INSERT INTO userinfo (email, password, role)'
             'VALUES (%s, %s, %s)',
             ('admin@gmail.com',
-            '14-Jun-2022 2:51 PM',
-             '15-Jun-2022 2:51 PM')
+            'abcde',
+             'admin')
+            )
+
+cur.execute('INSERT INTO userinfo (email, password, role)'
+            'VALUES (%s, %s, %s)',
+            ('hung@gmail.com',
+            'hung',
+             'customer')
+            )
+
+cur.execute('INSERT INTO userinfo (email, password, role)'
+            'VALUES (%s, %s, %s)',
+            ('phan@gmail.com',
+            'phan',
+             'customer')
             )
 
 

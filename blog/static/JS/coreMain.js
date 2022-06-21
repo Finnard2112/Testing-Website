@@ -4482,7 +4482,7 @@ Docs & License: https://fullcalendar.io/
         header: {
             left: 'title',
             center: '',
-            right: 'today prev,next'
+            right: 'today,prev,next'
         },
         weekends: true,
         weekNumbers: false,

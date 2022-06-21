@@ -2,7 +2,7 @@ import os
 import psycopg2
 import functools
 from tkinter.filedialog import test
-from flask import Flask, render_template, request, url_for, redirect, session, flash, g, Blueprint
+from flask import Flask, jsonify, render_template, request, url_for, redirect, session, flash, g, Blueprint
 import flask
 from datetime import datetime
 import json
@@ -60,8 +60,8 @@ def create_app(test_config=None):
                     conn = get_db_connection()
                     cur = conn.cursor()
                     cur.execute('INSERT INTO userinfo (email, password)'
-                                'VALUES (%s, %s)',
-                                (email, password))
+                                'VALUES (%s, %s, %s)',
+                                (email, password, 'user'))
                     conn.commit()
                     return redirect(url_for('welcome'))
 
@@ -145,11 +145,19 @@ def create_app(test_config=None):
                     startdate += " " + request.form['start_time']
                     enddate = request.form['end_date']
                     enddate += " " + request.form['end_time']
-                    cur.execute('INSERT INTO tests_registration (email, startdate, enddate)'
-                                'VALUES (%s, %s, %s)',
-                                (email, startdate, enddate))
+                    cur.execute('select * from tests_registration '
+                                'where (startdate, enddate) '
+                                'overlaps (%s, %s) and status = %s',
+                                (startdate, enddate, 1))
+                    overlaps = cur.fetchone()
+                    if (overlaps is None):
+                        cur.execute('INSERT INTO tests_registration (email, startdate, enddate, status)'
+                                    'VALUES (%s, %s, %s, %s)',
+                                    (email, startdate, enddate, 1))
+                    else:
+                        flash("Tests cannot overlap")
                     conn.commit()
-                    return redirect(url_for('autotest'))
+                    return jsonify({"status":2})
                 else:
                     json_data = flask.request.json
                     cur.execute('UPDATE tests_registration '
@@ -158,27 +166,37 @@ def create_app(test_config=None):
                                 'WHERE email = %s AND startdate = %s',
                                 (json_data["start"][4:25], json_data["end"][4:25], json_data["title"], json_data["oldstart"][4:25]))
                     conn.commit()
-                    return redirect(url_for('autotest'))
+                    return jsonify({"status": 3})
             except (Exception, psycopg2.Error) as error:
                 print(error)
             finally:
                 cur.close()
                 conn.close()
-                return redirect(url_for('autotest'))
+            return redirect(url_for('autotest'))
         elif (request.method == 'DELETE'):
             json_data = flask.request.json
-            cur.execute('DELETE FROM tests_registration '
-                                'WHERE id = %s',
-                                (json_data["id"]))
-            conn.commit()
-            return redirect(url_for('autotest'))
+            cur.execute('select * from userinfo where email = \'{}\''.format(session["email"]))
+            user = cur.fetchone()
+            if (session["email"] == json_data["email"] or user[3] == "admin"):
+                cur.execute('UPDATE tests_registration '
+                        'SET status = %s WHERE id = %s',
+                        (0, json_data["id"]))
+                conn.commit()
+                return jsonify({"delete":1})
+            else:
+                return jsonify({"delete":0})
         else:
             events = list()
-            cur.execute('SELECT * FROM tests_registration;')
+            cur.execute('SELECT * FROM tests_registration where status = 1;')
             tests = cur.fetchall()
+            cur.execute('SELECT * From userinfo where email = \'{}\''.format(session.get("email")))
+            user = cur.fetchone()
+            admin = False
+            if (user[3] == "admin"):
+                admin = True
             for entry in tests:
                 editable = False
-                if(session.get("email") == entry[1]):
+                if(session.get("email") == entry[1] or admin):
                     editable = True
                 events.append({
                     "id": entry[0],
@@ -187,10 +205,9 @@ def create_app(test_config=None):
                     "end": entry[3].strftime("%Y-%m-%dT%H:%M:%S"),
                     "editable": editable
                 })
-            email = session["email"]
-            events=str(json.dumps(events)).replace("&#34:", "'")
+            events = str(json.dumps(events)).replace("&#34:", "'")
             cur.close()
             conn.close()
-            return render_template('test_registration.html', events=events, email=email)
-        
+            return render_template('test_registration.html', events=events, email=session["email"], admin=admin)
+
     return app
