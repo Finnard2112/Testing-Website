@@ -172,7 +172,6 @@ def create_app(test_config=None):
             finally:
                 cur.close()
                 conn.close()
-            return redirect(url_for('autotest'))
         elif (request.method == 'DELETE'):
             json_data = flask.request.json
             cur.execute('select * from userinfo where email = \'{}\''.format(session["email"]))
