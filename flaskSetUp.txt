@@ -1,0 +1,5 @@
+$env:FLASK_APP = "app.py"
+$env:FLASK_ENV = "development"
+$env:DB_USERNAME = "postgres"
+$env:DB_PASSWORD = "Abcde1234"
+$env:DATABASE_URL = "postgresql://postgres:Abcde1234@localhost:5432/Autotest_Registration"
