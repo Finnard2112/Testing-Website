@@ -199,4 +199,4 @@ def autotest():
         return render_template('test_registration.html', events=events, username=session["username"], is_in_registered_time=is_in_registered_time())
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host="0.0.0.0", port="5000")
