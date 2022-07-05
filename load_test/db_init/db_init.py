@@ -27,5 +27,5 @@ class Tests_Registration(Base):
     def __repr__(self):
         return f"Test(id={self.id!r}, start_timestamp={self.start_timestamp!r}, end_timestamp={self.end_timestamp!r}, status={self.status!r})"
 
-Base.metadata.schema = "autotest"
-Base.metadata.create_all(engine)
+# Base.metadata.schema = "autotest"
+# Base.metadata.create_all(engine)

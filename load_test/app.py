@@ -12,6 +12,8 @@ from sqlalchemy import create_engine, and_
 import requests
 from werkzeug.utils import secure_filename
 from db_init.db_init import Tests_Registration, User_Info
+import webbrowser
+
 
 
 app = Flask(__name__, instance_relative_config=True)
@@ -46,7 +48,7 @@ def login():
                 else:
                     flash(authorization.json()["message"])
             else:
-                flash("Incorrect Password or Username")
+                flash("Username hoặc password không đúng")
         except (Exception) as error:
             print(error)
     elif (session.get("username") is not None):
@@ -78,7 +80,7 @@ def login_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
         if (len(session) == 0 or None in session.values()):
-            flash("Login needed")
+            flash("Bạn chưa đăng nhập")
             return redirect(url_for('login'))
         return view(**kwargs)
     return wrapped_view
@@ -101,6 +103,7 @@ def loadtest_form():
         except ValueError as verr:
             flash("Incorrect data types")
             return redirect(url_for('loadtest_form'))
+        
         files = request.files.getlist('file')
         myfiles = None
         for file in files:
@@ -110,29 +113,32 @@ def loadtest_form():
                 file_directory = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(file_directory)
                 myfiles = {'file': open(file_directory,'rb')}
+        
         url = os.getenv("LOCUST_API_URL")
         payload={'data': json.dumps(form_data)}
-        data_send = requests.request("POST", url,data=payload, headers = {"Authorization": "Bearer " + session["token"]}, files=myfiles, verify= False)
+        data_send = requests.request("POST", url,data=payload, headers = {"Authorization": session["token"]}, files=myfiles, verify= False)
+        
         if (data_send.status_code == 401):
             response_dict = data_send.json()
             if (response_dict.get("exp") == "token expired"):
                 renew = requests.post(os.getenv("TOKEN_REFRESH_URL"), json={"refresh_token":session["refresh_token"]})
                 if(renew.status_code == 401):
-                    flash("Token Invalid, please log in again")
+                    flash("Không thể xác nhận token, hãy đăng nhập lại")
                     return(redirect(url_for("logout")))
                 session["refresh_token"] = renew.json().get("refresh_token")
                 session["token"] = renew.json().get("token")
-                data_send = requests.request("POST", url, headers={"Authorization": "Bearer " + str(session["token"])}, data=payload, files=myfiles, verify= False)
+                data_send = requests.request("POST", url, headers={"Authorization": session["token"]}, data=payload, files=myfiles, verify= False)
             elif (data_send.json().get("message") == "Unauthorized"):
-                flash("Invalid Token, please login again")
+                flash("Không thể xác nhận token, hãy đăng nhập lại")
                 redirect(url_for('login'))
         if (data_send.status_code == 200):
             if (data_send.json()["status"] == 0):
-                return redirect(data_send.json()["address"])
+                webbrowser.open(data_send.json()["address"])
+                return redirect(url_for("autotest"))
             else:
                 flash("Something went wrong: " + data_send.json()["message"])
         else:
-            print("Error: " + data_send.text)
+            flash("Error: " + data_send.text)
         if (myfiles):
             myfiles["file"].close()
             os.remove(file_directory)
