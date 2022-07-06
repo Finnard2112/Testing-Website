@@ -6,7 +6,8 @@ from flask import Flask, jsonify, render_template, request, url_for, redirect, s
 import flask
 import json
 import config
-from datetime import datetime, timedelta
+import pytz
+from datetime import date, datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, and_
 import requests
@@ -25,6 +26,12 @@ app.secret_key = "pcvMGNKRxmXWYVIGjlYo"
 app.permanent_session_lifetime = timedelta(minutes=30)
 sql_session = Session(engine)
 
+@app.route('/tz', methods=('POST',))
+def timezone():
+    json_data = flask.request.json
+    session["user_timezone"] = json_data["Timezone"]
+    return jsonify(timezone=1)
+
 @app.route('/',  methods=('GET', 'POST'))
 def login():
     if request.method == 'POST':
@@ -34,9 +41,10 @@ def login():
                         'password' : request.form['password']}
             authorization = requests.post(login_url, json=login_data)
             if (authorization.headers.get('content-type') == 'application/json'):
-                if (authorization.status_code == 201):
-                    token = authorization.json()["token"]
-                    refresh_token = authorization.json()["refresh_token"]
+                json_response = authorization.json()
+                if (authorization.status_code == 200 and json_response["message"] == "OK"):
+                    token = json_response["token"]
+                    refresh_token = json_response["refresh_token"]
                     session["username"] = request.form['username']
                     session["password"] = request.form['password']
                     session["refresh_token"] = refresh_token
@@ -46,7 +54,7 @@ def login():
                         session["role"] = row.role
                     return redirect(url_for("autotest"))
                 else:
-                    flash(authorization.json()["message"])
+                    flash(json_response["message"])
             else:
                 flash("Username hoặc password không đúng")
         except (Exception) as error:
@@ -65,11 +73,16 @@ def logout():
     session["token"] = None
     return redirect(url_for('login'))
 
+def tz_localize(timestamp):
+    loc_tz = pytz.timezone(session["user_timezone"])
+    loc_dt = loc_tz.localize(timestamp)
+    return loc_dt
 
 def is_in_registered_time():
     user_tests = sql_session.query(Tests_Registration).filter(Tests_Registration.status == 1, Tests_Registration.author == session["username"])
     for entry in user_tests:
-        if (datetime.now() >= entry.start_timestamp and datetime.now() <= entry.end_timestamp):
+        now = pytz.utc.localize(datetime.utcnow())
+        if (now >= entry.start_timestamp and now <= entry.end_timestamp):
            return True
     return False
 
@@ -156,12 +169,12 @@ def autotest():
                 start += " " + request.form['start_time']
                 end = request.form['end_date']
                 end += " " + request.form['end_time']
-                start = datetime.strptime(start, '%d-%b-%Y %I:%M %p')
-                end = datetime.strptime(end, '%d-%b-%Y %I:%M %p')
+                start = tz_localize(datetime.strptime(start, '%d-%b-%Y %I:%M %p'))
+                end = tz_localize(datetime.strptime(end, '%d-%b-%Y %I:%M %p'))
                 overlaps = sql_session.query(Tests_Registration).filter(start <= Tests_Registration.end_timestamp, end >= Tests_Registration.start_timestamp, Tests_Registration.status != 0).first()
                 if (overlaps):
                     flash("Không thể trùng với thời gian đã được đăng ký")
-                elif (start < datetime.now()):
+                elif (start < pytz.utc.localize(datetime.utcnow()) - timedelta(minutes=2)):
                     flash("Không thể test tải trong quá khứ")
                 else:
                     new_test = Tests_Registration(start_timestamp = start, end_timestamp = end, status = 1, author = session["username"])
@@ -170,10 +183,11 @@ def autotest():
                 return redirect(url_for('autotest'))
             else:
                 json_data = flask.request.json
-                selected_test = sql_session.query(Tests_Registration).filter(and_(Tests_Registration.author == json_data["title"], Tests_Registration.start_timestamp == json_data["oldstart"][4:25]))
+                oldstart = tz_localize(datetime.strptime(json_data["oldstart"][4:25], "%b %d %Y %H:%M:%S "))
+                selected_test = sql_session.query(Tests_Registration).filter(and_(Tests_Registration.author == json_data["title"], Tests_Registration.start_timestamp == oldstart))
                 for entry in selected_test:
-                    entry.start_timestamp = datetime.strptime(json_data["start"][4:25], "%b %d %Y %H:%M:%S ")
-                    entry.end_timestamp = datetime.strptime(json_data["end"][4:25], '%b %d %Y %H:%M:%S ')
+                    entry.start_timestamp = tz_localize(datetime.strptime(json_data["start"][4:25], "%b %d %Y %H:%M:%S "))
+                    entry.end_timestamp = tz_localize(datetime.strptime(json_data["end"][4:25], '%b %d %Y %H:%M:%S '))
                 sql_session.commit()
                 return redirect(url_for('autotest'))
         except (Exception) as error:
@@ -189,7 +203,7 @@ def autotest():
             return jsonify({"delete":0})
     else:
         events = list()
-        valid_tests = sql_session.query(Tests_Registration).filter(Tests_Registration.status == 1, Tests_Registration.end_timestamp > datetime.now()) 
+        valid_tests = sql_session.query(Tests_Registration).filter(Tests_Registration.status == 1, Tests_Registration.end_timestamp > pytz.utc.localize(datetime.utcnow())) 
         for entry in valid_tests:
             editable = False
             if(session["username"] == entry.author or session.get("role") == "admin"):
@@ -197,12 +211,12 @@ def autotest():
             events.append({
                 "id": entry.id,
                 "title": entry.author,
-                "start": entry.start_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                "end": entry.end_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                "start": str(entry.start_timestamp),
+                "end": str(entry.end_timestamp),
                 "editable": editable
             })
         events = str(json.dumps(events)).replace("&#34:", "'")
-        return render_template('test_registration.html', events=events, username=session["username"], is_in_registered_time=is_in_registered_time())
+        return render_template('test_registration.html', events=events, username=session["username"], is_in_registered_time=is_in_registered_time(), role=session.get("role"))
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port="5000")

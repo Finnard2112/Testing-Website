@@ -3,6 +3,7 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
 import os
+print(os.getenv("DATABASE_URL"))
 engine = create_engine(os.getenv("DATABASE_URL"), echo=True, future=True)
 
 Base = declarative_base()
@@ -19,8 +20,8 @@ class User_Info(Base):
 class Tests_Registration(Base):
     __tablename__ = "tests_registration"
     id = Column(Integer, primary_key=True, nullable=False)
-    start_timestamp = Column(DateTime(timezone=False), nullable=False)
-    end_timestamp = Column(DateTime(timezone=False), nullable=False)
+    start_timestamp = Column(DateTime(timezone=True), nullable=False)
+    end_timestamp = Column(DateTime(timezone=True), nullable=False)
     status = Column(SmallInteger, nullable=False)
     author = Column(String(250), unique=False, nullable=False)
     schema = "autotest"
