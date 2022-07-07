@@ -42,7 +42,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.3/plugin/timezone.min.js"
         integrity="sha512-fG1tT/Wn/ZOyH6/Djm8HQBuqvztPQdK/vBgNFLx6DQVt3yYYDPN3bXnGZT4z4kAnURzGQwAnM3CspmhLJAD/5Q=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script>
+    <script type="text/javascript">
         $(document).ready(function () {
             dayjs.extend(window.dayjs_plugin_utc)
             dayjs.extend(window.dayjs_plugin_timezone)
@@ -54,40 +54,31 @@
             xhr.send(JSON.stringify({
                 Timezone: dayjs.tz.guess()
             }));
+            toastr.options = {
+                "tapToDismiss": true,
+                "closeButton": true,
+                "debug": false,
+                "positionClass": "toast-bottom-right",
+                "onclick": null,
+                "showDuration": "1000",
+                "hideDuration": "1000",
+                "timeOut": "300000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut",
+                "preventDuplicates": false
+            }
+            {% for message in get_flashed_messages() %}
+            toastr.error('{{ message }}');
+            {% endfor %}
         });
-        toastr.options = {
-            "tapToDismiss": true,
-            "closeButton": true,
-            "debug": false,
-            "positionClass": "toast-bottom-right",
-            "onclick": null,
-            "showDuration": "1000",
-            "hideDuration": "1000",
-            "timeOut": "300000",
-            "extendedTimeOut": "1000",
-            "showEasing": "swing",
-            "hideEasing": "linear",
-            "showMethod": "fadeIn",
-            "hideMethod": "fadeOut",
-            "preventDuplicates": false
-        }
-        {% for message in get_flashed_messages() %}
-        toastr.error('{{ message }}');
-        {% endfor %}
     </script>
 
 </head>
 
 <body>
-    <div class="content">
-        {% for message in get_flashed_messages() %}
-        <div class="alert alert-warning">
-            <button type="button" class="close" data-dismiss="alert">&times;</button>
-            {{ message }}
-        </div>
-        {% endfor %}
-    </div>
-
     <div class="container-fluid ps-md-0">
         <div class="row g-0">
             <div class="d-none d-md-flex col-md-4 col-lg-6 bg-image"></div>

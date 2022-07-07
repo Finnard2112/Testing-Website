@@ -2,11 +2,12 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=".\\load_test.env")
 import os
 import functools
-from flask import Flask, jsonify, render_template, request, url_for, redirect, session, flash, g
+from flask import Flask, jsonify, render_template, request, url_for, redirect, session, flash
 import flask
 import json
 import config
 import pytz
+import jwt
 from datetime import date, datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, and_
@@ -23,14 +24,72 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'C:\Temporary Files'
 engine = create_engine(os.getenv("DATABASE_URL"), echo = False, echo_pool=False, future=True)
 app.secret_key = "pcvMGNKRxmXWYVIGjlYo"
-app.permanent_session_lifetime = timedelta(minutes=30)
 sql_session = Session(engine)
 
-@app.route('/tz', methods=('POST',))
+def tz_localize(timestamp):
+    loc_tz = pytz.timezone(session["user_timezone"])
+    loc_dt = loc_tz.localize(timestamp)
+    return loc_dt
+
+def is_in_registered_time(username=None):
+    if(username is None):
+        username = session.get("username")
+    user_tests = sql_session.query(Tests_Registration).filter(Tests_Registration.status == 1, Tests_Registration.author == username)
+    for entry in user_tests:
+        now = pytz.utc.localize(datetime.utcnow())
+        if (now >= entry.start_timestamp and now <= entry.end_timestamp):
+           return True
+    return False
+
+def login_required(view):
+    @functools.wraps(view)
+    def wrapped_view(**kwargs):
+        if (len(session) == 0 or None in session.values()):
+            flash("Bạn chưa đăng nhập")
+            return redirect(url_for('login'))
+        return view(**kwargs)
+    return wrapped_view
+
+@app.before_request
+def before_request_callback(): 
+    request = flask.request
+    endpoint = request.endpoint 
+    method = request.method 
+    services = ["loadtest_form"]
+    if endpoint in services: 
+        if (not is_in_registered_time()):
+            flash("Chưa tới giờ đăng ký của bạn")
+            return redirect(url_for("services"))
+
+@app.route('/tz', methods=['POST'])
 def timezone():
-    json_data = flask.request.json
-    session["user_timezone"] = json_data["Timezone"]
-    return jsonify(timezone=1)
+    try:
+        json_data = flask.request.json
+        session["user_timezone"] = json_data.get("Timezone")
+        return jsonify(timezone=1)
+    except Exception as e:
+        return jsonify(message="Cannot understand request")
+
+@app.route('/validate', methods=('POST',))
+def validate():
+    if (request.content_type == 'application/json'):
+        try:
+            json_data = flask.request.json
+            token = json_data.get("jwt")
+            authorization = requests.post(os.getenv("VALIDATE_API_URL"), json={"token" : token})
+            if (authorization.ok):
+                payload = jwt.decode(token, algorithms=["HS256"], options={"verify_signature": False})
+                if (is_in_registered_time(payload.get("name"))):
+                    return jsonify(message = "OK", status = 0), 200
+                else:
+                    return jsonify(message = "User is not in registered time", status = 1), 401
+            else:
+                return jsonify(message = "Token invalid", status = 1), 401
+        except Exception as e:
+            return jsonify(message = str(e)), 400
+    else:
+        return jsonify(message = "Bad Request", status = 1), 400
+
 
 @app.route('/',  methods=('GET', 'POST'))
 def login():
@@ -49,6 +108,7 @@ def login():
                     session["password"] = request.form['password']
                     session["refresh_token"] = refresh_token
                     session["token"] = token
+                    session["first_login"] = True
                     user = sql_session.query(User_Info).filter(User_Info.username == session["username"])
                     for row in user:
                         session["role"] = row.role
@@ -56,7 +116,7 @@ def login():
                 else:
                     flash(json_response["message"])
             else:
-                flash("Username hoặc password không đúng")
+                flash("Something went wrong")
         except (Exception) as error:
             print(error)
     elif (session.get("username") is not None):
@@ -73,48 +133,27 @@ def logout():
     session["token"] = None
     return redirect(url_for('login'))
 
-def tz_localize(timestamp):
-    loc_tz = pytz.timezone(session["user_timezone"])
-    loc_dt = loc_tz.localize(timestamp)
-    return loc_dt
 
-def is_in_registered_time():
-    user_tests = sql_session.query(Tests_Registration).filter(Tests_Registration.status == 1, Tests_Registration.author == session["username"])
-    for entry in user_tests:
-        now = pytz.utc.localize(datetime.utcnow())
-        if (now >= entry.start_timestamp and now <= entry.end_timestamp):
-           return True
-    return False
-
-
-# Checks for token when requesting autotest_registration or loadtest_form. If invalid or expired token, use refresh token
-
-def login_required(view):
-    @functools.wraps(view)
-    def wrapped_view(**kwargs):
-        if (len(session) == 0 or None in session.values()):
-            flash("Bạn chưa đăng nhập")
-            return redirect(url_for('login'))
-        return view(**kwargs)
-    return wrapped_view
+@app.route('/services', methods=['GET'])
+@login_required
+def services():
+    return render_template("services.html", username=session["username"])
 
 # Receive loadtest_form data and sends it to API. 
 
 @app.route('/loadtest_form', methods=('GET', 'POST'))
 @login_required
 def loadtest_form():
-    if (not is_in_registered_time()):
-        flash("Chưa tới giờ đăng ký của bạn")
-        return redirect('autotest_registration') 
     if (request.method == 'POST'):
         form_data = request.form.to_dict()
         form_data = dict((k.rstrip(), v.rstrip()) for k, v in form_data.items() if k != "Authorization")
+        form_data["jwt"] = session.get("token")
         try:
             form_data["type_request"] = int(form_data["type_request"])
             form_data["ccu"] = int(form_data["ccu"])
             form_data["stop_timeout"] = int(form_data["stop_timeout"])
         except ValueError as verr:
-            flash("Incorrect data types")
+            flash("Data không hợp lệ hoặc không đầy đủ")
             return redirect(url_for('loadtest_form'))
         
         files = request.files.getlist('file')
@@ -129,7 +168,7 @@ def loadtest_form():
         
         url = os.getenv("LOCUST_API_URL")
         payload={'data': json.dumps(form_data)}
-        data_send = requests.request("POST", url,data=payload, headers = {"Authorization": session["token"]}, files=myfiles, verify= False)
+        data_send = requests.request("POST", url,data=payload, headers = {"Authorization": "Bearer " + session["token"]}, files=myfiles, verify= False)
         
         if (data_send.status_code == 401):
             response_dict = data_send.json()
@@ -216,7 +255,12 @@ def autotest():
                 "editable": editable
             })
         events = str(json.dumps(events)).replace("&#34:", "'")
-        return render_template('test_registration.html', events=events, username=session["username"], is_in_registered_time=is_in_registered_time(), role=session.get("role"))
+        first_login = False
+        if (session.get("first_login") == True):
+            first_login = True
+            session["first_login"] = False
+        
+        return render_template('test_registration.html', events=events, username=session["username"], is_in_registered_time=is_in_registered_time(), role=session.get("role"), first_login = first_login)
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port="5000")
