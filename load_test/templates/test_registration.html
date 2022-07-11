@@ -18,34 +18,6 @@
   <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script>
   <link rel = 'stylesheet' href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
   <style type="text/css">
-    .pink-background {
-      background-color: #f67280;
-    }
-
-    .blue-background {
-    background-color: #0051E9;
-    }
-    .white {
-      color: #ffffff;
-    }
-
-    .header {
-        background-color: #0051E9;
-        background-image: linear-gradient(to right, #80acff 0%, #ccdeff 100%);
-    }
-
-    @media (min-width: 768px) {
-      .navbar-brand.abs {
-          position: absolute;
-          width: auto;
-          left: 50%;
-          transform: translateX(-50%);
-          text-align: center;
-      }
-    }
-    .text-small {
-    font-size: 0.9rem !important;
-    }
   </style>
   <title>Hệ Thống Test Tải</title>
   <script>
@@ -85,19 +57,19 @@
 <body>
     <header class="header sticky-top py-1">
         <nav class="navbar navbar-light navbar-expand-md bg-faded justify-content-center">
-            <a class="navbar-brand d-flex w-50 mr-auto h1 font-weight-bold ">Home</a>
+            <a class="navbar-brand d-flex w-50 mr-auto h1 font-weight-bold white">Home</a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsingNavbar3">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="navbar-collapse collapse w-100" id="collapsingNavbar3">
                 <ul class="navbar-nav w-100 justify-content-center">
                     <li class="nav-item active">
-                        <button type="button" onclick="services()" class='btn pink-background white'> Đi tới các dịch vụ
+                        <button type="button" onclick="services()" class='btn blue-background white'> Đi tới các dịch vụ
                         </button>
                 </ul>
                 <ul class="nav navbar-nav ml-auto w-100 justify-content-end">
                     <li class="nav-item active">
-                        <a class="nav-link font-weight-bold" href="{{url_for('logout')}}">Đăng xuất {{username}}</a>
+                        <a class="nav-link font-weight-bold white" href="{{url_for('logout')}}">Đăng xuất {{username}}</a>
                     </li>
                 </ul>
             </div>
@@ -181,7 +153,7 @@
             clickedDelete = false;
           } else {
             var eventObj = info.event;
-            alert("Testing starts: " + eventObj.start + "; Testing ends: " + eventObj.end);
+            alert("Thời gian bắt đầu: " + eventObj.start + "\n Thời gian kết thúc: " + eventObj.end);
             info.jsEvent.preventDefault(); // don't let the browser navigate
           }
 
