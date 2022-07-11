@@ -66,8 +66,12 @@
                         </button>
                 </ul>
                 <ul class="nav navbar-nav ml-auto w-100 justify-content-end">
+                    <li class="nav-item pr-3">
+                        <a class="nav-link white disabled" >Xin chào {{username}}</a>
+                    </li>
                     <li class="nav-item active">
-                        <a class="nav-link font-weight-bold white" href="/logout">Đăng xuất {{username}} </a>
+                        <button type="button" onclick="logout()" class='btn blue-background white'> Đăng xuất
+                        </button>
                     </li>
                 </ul>
             </div>
@@ -172,6 +176,10 @@
 
         function autotest_registration() {
             location.replace("{{url_for('autotest')}}")
+        }
+
+        function logout() {
+            location.replace("{{url_for('logout')}}")
         }
     </script>
 </body>
