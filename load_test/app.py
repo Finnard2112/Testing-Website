@@ -1,8 +1,9 @@
 from dotenv import load_dotenv
-load_dotenv(dotenv_path=".\\load_test.env")
+load_dotenv()
 import os
 import functools
 from flask import Flask, jsonify, render_template, request, url_for, redirect, session, flash
+from sassutils.wsgi import SassMiddleware
 import flask
 import json
 import config
@@ -25,6 +26,9 @@ app.config['UPLOAD_FOLDER'] = 'C:\Temporary Files'
 engine = create_engine(os.getenv("DATABASE_URL"), echo = False, echo_pool=False, future=True)
 app.secret_key = "pcvMGNKRxmXWYVIGjlYo"
 sql_session = Session(engine)
+app.wsgi_app = SassMiddleware(app.wsgi_app, {
+    'app': ('static/sass', 'static/css', '/static/css')
+})
 
 def tz_localize(timestamp):
     loc_tz = pytz.timezone(session["user_timezone"])
@@ -137,7 +141,8 @@ def logout():
 @app.route('/services', methods=['GET'])
 @login_required
 def services():
-    return render_template("services.html", username=session["username"])
+    api_urls = {"iBeta" : "https://192.168.41.199:8090/api_test_fw/ibeta"}
+    return render_template("services.html", username=session["username"], api_urls = api_urls)
 
 # Receive loadtest_form data and sends it to API. 
 
@@ -208,8 +213,8 @@ def autotest():
                 start += " " + request.form['start_time']
                 end = request.form['end_date']
                 end += " " + request.form['end_time']
-                start = tz_localize(datetime.strptime(start, '%d-%b-%Y %I:%M %p'))
-                end = tz_localize(datetime.strptime(end, '%d-%b-%Y %I:%M %p'))
+                start = tz_localize(datetime.strptime(start, '%d-%m-%Y %I:%M %p'))
+                end = tz_localize(datetime.strptime(end, '%d-%m-%Y %I:%M %p'))
                 overlaps = sql_session.query(Tests_Registration).filter(start <= Tests_Registration.end_timestamp, end >= Tests_Registration.start_timestamp, Tests_Registration.status != 0).first()
                 if (overlaps):
                     flash("Không thể trùng với thời gian đã được đăng ký")

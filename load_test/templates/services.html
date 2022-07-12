@@ -14,8 +14,39 @@
     <link rel='stylesheet' href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='CSS/style.css') }}">
+    <link href="{{ url_for('static', filename='css/style.scss.css') }}"
+      rel="stylesheet" type="text/css">
     <script>
+        function start_service(service_name) {
+        console.log(service_name)
+        // var url = "{{(api_urls | safe)}}";
+        console.log("{{api_urls["iBeta"]}}")
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", url, true);
+        xhr.onload = function () {
+            const response = JSON.parse(this.responseText);
+            console.log("I RAN")
+            console.log(response.message)
+            if (response.message == "success") {
+                session_ids[service_name] = response.session_id;
+                const elem = document.getElementById(element_id);
+                elem.style.backgroundColor = "lightgreen";
+            } else {
+                alert("Unable to start iBeta")
+            }
+            }
+        }
+
         $(document).ready(function () {
+            var play_btn = $('.play_button')
+            play_btn.click(function() {
+                $(this).toggleClass('paused')
+                start_service($(this).attr("id"))
+                return false
+            })
+            var stop_btn 
+
+
             toastr.options = {
                 "tapToDismiss": true,
                 "closeButton": true,
@@ -92,24 +123,37 @@
             </nav>
             <div class="tab-content py-3 px-3 px-sm-0" id="nav-tabContent">
                 <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab">
-                    <section class="py-3 section-1">
-                        <div class="container-fluid py-4 text-center">
+                    <section class="py-1">
+                        <div class="container-fluid">
                             <div class="row">
                                 <div class="col-sm mx-auto">
                                     <div id="myDIV" class="card py-3">
                                         <div class="container">
-                                            <div class="row pt-5">
+                                            <div class="row py-5">
                                                 <div class="col">
-                                                    <button type="button"
-                                                        class="btn sv_btn btn-sq-responsive">EKYC</button>
+                                                    <div class="card text-center py-1 border-dark">
+                                                        <h2 class = "card-header">eKYC</h2>
+                                                        <div class="card-body">
+                                                            <div class = "row justify-content-center"> <div class="play_button" id="eKYC"></div></div>
+                                                        </div>
+                                                        <h5 style="color: green">Đang chạy...</h5>
+                                                    </div>
                                                 </div>
                                                 <div class="col">
-                                                    <button type="button" class="btn sv_btn btn-sq-responsive">Smart
-                                                        RPA</button>
+                                                    <div class="card text-center py-1 border-dark">
+                                                        <h2 class = "card-header">Smart RPA</h2>
+                                                        <div class="card-body">
+                                                            <div class = "row justify-content-center"> <div class="play_button" id="Smart RPA"></div></div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 <div class="col">
-                                                    <button type="button"
-                                                        class="btn sv_btn btn-sq-responsive">iBeta</button>
+                                                    <div class="card text-center py-1 border-dark">
+                                                        <h2 class = "card-header">iBeta</h2>
+                                                        <div class="card-body">
+                                                            <div class = "row justify-content-center"> <div class="play_button" id = "iBeta"></div></div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -120,7 +164,7 @@
                     </section>
                 </div>
                 <div class="tab-pane fade" id="nav-profile" role="tabpanel" aria-labelledby="nav-profile-tab">
-                    <section class="py-3 section-2">
+                    <section class="py-3">
                         <div class="container-fluid py-4 text-center">
                             <div class="row">
                                 <div class="col-sm mx-auto">
@@ -144,7 +188,7 @@
                     </section>
                 </div>
                 <div class="tab-pane fade" id="nav-contact" role="tabpanel" aria-labelledby="nav-contact-tab">
-                    <section class="py-3 section-2">
+                    <section class="py-3">
                         <div class="container-fluid py-4 text-center">
                             <div class="col-sm mx-auto">
                                 <div id="myDIV" class="card py-3">
@@ -167,9 +211,22 @@
 
         </div>
     </section>
+
+    {% for key in api_urls%}
+      <tr>
+        <td>
+          <h3>{{ key }}</h3>
+        </td>
+        <td>
+          <h3>{{ api_urls[key] }}</h3>
+        </td>
+      </tr>
+    {% endfor %}
     <!-- Demo content-->
 
     <script>
+        var urls = {}
+        var session_ids = {}
         function load_test_form() {
             location.replace("{{url_for('loadtest_form')}}")
         }
@@ -181,6 +238,7 @@
         function logout() {
             location.replace("{{url_for('logout')}}")
         }
+
     </script>
 </body>
 
