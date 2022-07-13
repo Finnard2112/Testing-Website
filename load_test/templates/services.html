@@ -16,36 +16,54 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='CSS/style.css') }}">
     <link href="{{ url_for('static', filename='css/style.scss.css') }}"
       rel="stylesheet" type="text/css">
+    <script src="{{ url_for('static', filename='JS/services_script.js') }}"></script>
     <script>
-        function start_service(service_name) {
-        console.log(service_name)
-        // var url = "{{(api_urls | safe)}}";
-        console.log("{{api_urls["iBeta"]}}")
-        var xhr = new XMLHttpRequest();
-        xhr.open("POST", url, true);
-        xhr.onload = function () {
-            const response = JSON.parse(this.responseText);
-            console.log("I RAN")
-            console.log(response.message)
-            if (response.message == "success") {
-                session_ids[service_name] = response.session_id;
-                const elem = document.getElementById(element_id);
-                elem.style.backgroundColor = "lightgreen";
-            } else {
-                alert("Unable to start iBeta")
+
+        (function loop(){
+        setTimeout(function() {
+            var cookies = document.cookie.split(';').reduce(
+                (cookies, cookie) => {
+                    const [name, val] = cookie.split('=').map(c => c.trim());
+                    cookies[name] = val;
+                    return cookies;
+            }, {});
+            for (let k in cookies) {
+                status_check(k, cookies[k])
             }
-            }
-        }
+            loop();
+        }, 2000);
+        })();
 
         $(document).ready(function () {
-            var play_btn = $('.play_button')
+            var play_btn = $('.play_button');
             play_btn.click(function() {
-                $(this).toggleClass('paused')
-                start_service($(this).attr("id"))
-                return false
-            })
-            var stop_btn 
+                var service_name = $(this).attr("id");
+                if ($(this).hasClass('paused')) {
+                    var session_id = getCookie($(this).attr("id"))
+                    var settings = {
+                        "url": "https://192.168.41.199:8090/stop_service",
+                        "method": "POST",
+                        "timeout": 0,
+                        "headers": {
+                            "Content-Type": "application/json"
+                        },
+                        "data": JSON.stringify({
+                            "session_id": parseInt(session_id)
+                        }),
+                        };
 
+                        $.ajax(settings).done(function (response) {
+                        if (response.status == 0) {
+                            document.cookie = service_name+'=; Max-Age=-99999999;';
+                            var service_status =  "#"+service_name+"-status"
+                            $(service_status).text("Đã dừng").css("color","red")
+                        }
+                        });
+                } else {
+                    start_service($(this).attr("id"), $(this).attr("play_link")) ;
+                }
+                $(this).toggleClass('paused');
+            })
 
             toastr.options = {
                 "tapToDismiss": true,
@@ -82,6 +100,7 @@
 </head>
 
 <body>
+
     <!-- Sticky navbar-->
     <header class="header sticky-top">
         <nav class="navbar navbar-light navbar-expand-md bg-faded justify-content-center">
@@ -113,120 +132,53 @@
         <div class="container">
             <nav>
                 <div class="nav nav-tabs nav-fill" id="nav-tab" role="tablist">
-                    <a class="nav-item nav-link active" id="nav-home-tab" data-toggle="tab" href="#nav-home" role="tab"
-                        aria-controls="nav-home" aria-selected="true">Test API</a>
-                    <a class="nav-item nav-link" id="nav-profile-tab" data-toggle="tab" href="#nav-profile" role="tab"
-                        aria-controls="nav-profile" aria-selected="false">Test Tải</a>
-                    <a class="nav-item nav-link" id="nav-contact-tab" data-toggle="tab" href="#nav-contact" role="tab"
-                        aria-controls="nav-contact" aria-selected="false">Test Performance</a>
+                    <a class="nav-item nav-link active" id="nav-api-tab" data-toggle="tab" href="#nav-api" role="tab"
+                        aria-controls="nav-api" aria-selected="true">Test API</a>
+                    <a class="nav-item nav-link" id="nav-load-tab" data-toggle="tab" href="#nav-load" role="tab"
+                        aria-controls="nav-load" aria-selected="false">Test Tải</a>
+                    <a class="nav-item nav-link" id="nav-performance-tab" data-toggle="tab" href="#nav-performance" role="tab"
+                        aria-controls="nav-performance" aria-selected="false">Test Performance</a>
                 </div>
             </nav>
             <div class="tab-content py-3 px-3 px-sm-0" id="nav-tabContent">
-                <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab">
-                    <section class="py-1">
-                        <div class="container-fluid">
-                            <div class="row">
-                                <div class="col-sm mx-auto">
-                                    <div id="myDIV" class="card py-3">
-                                        <div class="container">
-                                            <div class="row py-5">
-                                                <div class="col">
-                                                    <div class="card text-center py-1 border-dark">
-                                                        <h2 class = "card-header">eKYC</h2>
-                                                        <div class="card-body">
-                                                            <div class = "row justify-content-center"> <div class="play_button" id="eKYC"></div></div>
-                                                        </div>
-                                                        <h5 style="color: green">Đang chạy...</h5>
-                                                    </div>
-                                                </div>
-                                                <div class="col">
-                                                    <div class="card text-center py-1 border-dark">
-                                                        <h2 class = "card-header">Smart RPA</h2>
-                                                        <div class="card-body">
-                                                            <div class = "row justify-content-center"> <div class="play_button" id="Smart RPA"></div></div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col">
-                                                    <div class="card text-center py-1 border-dark">
-                                                        <h2 class = "card-header">iBeta</h2>
-                                                        <div class="card-body">
-                                                            <div class = "row justify-content-center"> <div class="play_button" id = "iBeta"></div></div>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                {% for key in api_urls %}
+                    {% if key == "api" %}
+                    <div class="tab-pane fade show active" id="nav-api" role="tabpanel" aria-labelledby="nav-api-tab">
+                    {% else %}
+                    <div class="tab-pane fade" id="nav-{{key}}" role="tabpanel" aria-labelledby="nav-{{key}}-tab">
+                    {% endif %}
+                    <div class="container-fluid">
+                        <div id="myDIV" class="card py-3 mx-auto">
+                            <div class="row py-5">
+                                {% for k in api_urls[key] %}
+                                <div class="col py-2 d-inline-flex justify-content-center">
+                                    <div class="card text-center py-1 border-dark" style = "min-width:261px; width:330px">
+                                        <h2 class = "card-header">{{k}}</h2>
+                                        <div class="card-body">
+                                            <div class = "row justify-content-center"> 
+                                                {% if k == "Locust" %}
+                                                    <!-- <button type="button"> <img src="../static/images/form_image.png" height ="80" width="100" /></button> -->
+                                                    <input type="image" onclick = "load_test_form()" src="../static/images/form_image.png"/> 
+                                                {% else %}
+                                                    <div class="play_button" id="{{k}}" play_link="{{api_urls[key][k]}}"></div>
+                                                {% endif %}
                                             </div>
                                         </div>
+                                        <h5 id={{k}}-status></h5>
                                     </div>
                                 </div>
+                                {% endfor %}
                             </div>
                         </div>
-                    </section>
+                    </div>
                 </div>
-                <div class="tab-pane fade" id="nav-profile" role="tabpanel" aria-labelledby="nav-profile-tab">
-                    <section class="py-3">
-                        <div class="container-fluid py-4 text-center">
-                            <div class="row">
-                                <div class="col-sm mx-auto">
-                                    <div id="myDIV" class="card py-3">
-                                        <div class="container">
-                                            <div class="row pt-5">
-                                                <div class="col">
-                                                    <button type="button" onclick="load_test_form()"
-                                                        class="btn sv_btn btn-sq-responsive">Locust</button>
-                                                </div>
-                                                <div class="col">
-                                                    <button type="button"
-                                                        class="btn sv_btn btn-sq-responsive">JMX</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-                <div class="tab-pane fade" id="nav-contact" role="tabpanel" aria-labelledby="nav-contact-tab">
-                    <section class="py-3">
-                        <div class="container-fluid py-4 text-center">
-                            <div class="col-sm mx-auto">
-                                <div id="myDIV" class="card py-3">
-                                    <div class="container">
-                                        <div class="row pt-5">
-                                            <div class="col">
-                                                <button type="button" class="btn sv_btn btn-sq-responsive">ETC</button>
-                                            </div>
-                                            <div class="col">
-                                                <button type="button" class="btn sv_btn btn-sq-responsive">ETC</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                </div>
+                {% endfor %}
             </div>
-
         </div>
     </section>
-
-    {% for key in api_urls%}
-      <tr>
-        <td>
-          <h3>{{ key }}</h3>
-        </td>
-        <td>
-          <h3>{{ api_urls[key] }}</h3>
-        </td>
-      </tr>
-    {% endfor %}
     <!-- Demo content-->
 
     <script>
-        var urls = {}
-        var session_ids = {}
         function load_test_form() {
             location.replace("{{url_for('loadtest_form')}}")
         }

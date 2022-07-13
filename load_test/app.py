@@ -70,7 +70,7 @@ def timezone():
     try:
         json_data = flask.request.json
         session["user_timezone"] = json_data.get("Timezone")
-        return jsonify(timezone=1)
+        return jsonify({"message" : "success", "status" : "0"})
     except Exception as e:
         return jsonify(message="Cannot understand request")
 
@@ -141,7 +141,9 @@ def logout():
 @app.route('/services', methods=['GET'])
 @login_required
 def services():
-    api_urls = {"iBeta" : "https://192.168.41.199:8090/api_test_fw/ibeta"}
+    api_urls = {"api":{"iBeta" : "https://192.168.41.199:8090/api_test_fw/ibeta", "eKYC" : "", "Smart RPA": ""},
+                "load":{"Locust": "", "JMX": ""},
+                "performance":{"ETC": ""}}
     return render_template("services.html", username=session["username"], api_urls = api_urls)
 
 # Receive loadtest_form data and sends it to API. 
