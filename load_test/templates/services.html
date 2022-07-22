@@ -7,61 +7,51 @@
     <title>VNPT Services</title>
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Roboto:400,100,300,700' rel='stylesheet' type='text/css'>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css'>
-    <link rel='stylesheet' href='https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css'>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.min.js'></script>
     <link rel='stylesheet' href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='CSS/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='CSS/services.css') }}">
     <link href="{{ url_for('static', filename='css/style.scss.css') }}"
       rel="stylesheet" type="text/css">
     <script src="{{ url_for('static', filename='JS/services_script.js') }}"></script>
-    <script>
 
-        (function loop(){
-        setTimeout(function() {
-            var cookies = document.cookie.split(';').reduce(
-                (cookies, cookie) => {
-                    const [name, val] = cookie.split('=').map(c => c.trim());
-                    cookies[name] = val;
-                    return cookies;
-            }, {});
-            for (let k in cookies) {
-                status_check(k, cookies[k])
-            }
-            loop();
-        }, 2000);
-        })();
+
+    <script>
 
         $(document).ready(function () {
             var play_btn = $('.play_button');
             play_btn.click(function() {
                 var service_name = $(this).attr("id");
-                if ($(this).hasClass('paused')) {
-                    var session_id = getCookie($(this).attr("id"))
-                    var settings = {
-                        "url": "https://192.168.41.199:8090/stop_service",
-                        "method": "POST",
-                        "timeout": 0,
-                        "headers": {
-                            "Content-Type": "application/json"
-                        },
-                        "data": JSON.stringify({
-                            "session_id": parseInt(session_id)
-                        }),
-                        };
+                // if ($(this).hasClass('paused')) {
+                //     var session_id = getCookie($(this).attr("id"))
+                //     var settings = {
+                //         "url": "https://192.168.41.199:8090/stop_service",
+                //         "method": "POST",
+                //         "timeout": 0,
+                //         "headers": {
+                //             "Content-Type": "application/json"
+                //         },
+                //         "data": JSON.stringify({
+                //             "session_id": parseInt(session_id)
+                //         }),
+                //         };
 
-                        $.ajax(settings).done(function (response) {
-                        if (response.status == 0) {
-                            document.cookie = service_name+'=; Max-Age=-99999999;';
-                            var service_status =  "#"+service_name+"-status"
-                            $(service_status).text("Đã dừng").css("color","red")
-                        }
-                        });
-                } else {
-                    start_service($(this).attr("id"), $(this).attr("play_link")) ;
-                }
+                //         $.ajax(settings).done(function (response) {
+                //         if (response.status == 0) {
+                //             document.cookie = service_name+'=; Max-Age=-99999999;';
+                //             var service_status =  "#"+service_name+"-status"
+                //             $(service_status).text("Đã dừng").css("color","red")
+                //         }
+                //         });
+                // } else {
+                start_service($(this).attr("id"), $(this).attr("play_link")) ;
+                // }
                 $(this).toggleClass('paused');
             })
 
@@ -96,6 +86,7 @@
             {% endif %}
 
         });
+
     </script>
 </head>
 
@@ -111,7 +102,7 @@
             <div class="navbar-collapse collapse w-100" id="collapsingNavbar3">
                 <ul class="navbar-nav w-100 justify-content-center">
                     <li class="nav-item active">
-                        <button type="button" onclick="autotest_registration()" class='btn blue-background white'> Đi
+                        <button type="button" onclick="autotest_registration()" class='btn btn-header blue-background white'> Đi
                             tới đăng ký test
                         </button>
                 </ul>
@@ -120,7 +111,7 @@
                         <a class="nav-link white disabled" >Xin chào {{username}}</a>
                     </li>
                     <li class="nav-item active">
-                        <button type="button" onclick="logout()" class='btn blue-background white'> Đăng xuất
+                        <button type="button" onclick="logout()" class='btn btn-header blue-background white'> Đăng xuất
                         </button>
                     </li>
                 </ul>
@@ -141,41 +132,186 @@
                 </div>
             </nav>
             <div class="tab-content py-3 px-3 px-sm-0" id="nav-tabContent">
-                {% for key in api_urls %}
-                    {% if key == "api" %}
+                {% for test_type in service_structure %}
+                    {% if test_type == "api" %}
                     <div class="tab-pane fade show active" id="nav-api" role="tabpanel" aria-labelledby="nav-api-tab">
                     {% else %}
-                    <div class="tab-pane fade" id="nav-{{key}}" role="tabpanel" aria-labelledby="nav-{{key}}-tab">
+                    <div class="tab-pane fade" id="nav-{{test_type}}" role="tabpanel" aria-labelledby="nav-{{test_type}}-tab">
                     {% endif %}
-                    <div class="container-fluid">
-                        <div id="myDIV" class="card py-3 mx-auto">
-                            <div class="row py-5">
-                                {% for k in api_urls[key] %}
-                                <div class="col py-2 d-inline-flex justify-content-center">
-                                    <div class="card text-center py-1 border-dark" style = "min-width:261px; width:330px">
-                                        <h2 class = "card-header">{{k}}</h2>
-                                        <div class="card-body">
-                                            <div class = "row justify-content-center"> 
-                                                {% if k == "Locust" %}
-                                                    <!-- <button type="button"> <img src="../static/images/form_image.png" height ="80" width="100" /></button> -->
-                                                    <input type="image" onclick = "load_test_form()" src="../static/images/form_image.png"/> 
-                                                {% else %}
-                                                    <div class="play_button" id="{{k}}" play_link="{{api_urls[key][k]}}"></div>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                        <h5 id={{k}}-status></h5>
-                                    </div>
+                        <div class="container-fluid" style = "padding-left: 0; padding-right: 0;">
+                            <div id="myDIV" class="card py-1 mx-auto">
+                                <div class="d-flex align-items-end flex-column">
+                                    <div type="button" data-toggle="modal" data-target="#groupModal" class="create_button" onclick="getElementById('hidden_val_group').setAttribute('value', '{{test_type}}')">Create group</div>
                                 </div>
-                                {% endfor %}
+                                <div class="row py-3">
+                                    {% for group in service_structure[test_type] %}
+                                        <div class="col-3 py-1 d-inline-flex justify-content-center">
+                                            {% if loop.first %}
+                                            <button type="button" class="sv_button nav-link" id="{{group}}" onclick="toggle_table('{{group}}-list')" role="button" > {{group}}</button>
+                                            {% else %}
+                                            <button type="button" class="sv_button nav-link" id="{{group}}" onclick="toggle_table('{{group}}-list')" role="button" > {{group}}</button>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
                 {% endfor %}
+            </div>
+            <div class="modal fade" id="groupModal" tabindex="-1" role="dialog" aria-labelledby="groupModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="groupModalLabel">Create Group</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <form method="post">
+                            <div class="form-group">
+                                <input type="hidden" name="form_name" id = "group_form_name" value="group" />
+                            </div>
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label for="name">Name:</label>
+                                    <input class="form-control" placeholder="Enter group name" id="name" name="group_name" required>
+                                </div>
+                                <div class="form-group">
+                                    <input type="hidden" name="group_type" id = "hidden_val_group" value=""/>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                            <button type="reset" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary" name="createbtn">Create</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        
+            <div class="tab-content pt-4" id="listTabs">
+                {% set cnt = [0] %}
+                {% for test_type in service_structure %}
+                {% for group in service_structure[test_type] %}
+                {% if cnt.append(cnt.pop() + 1) %}{% endif %}
+                    <div class="tab-pane fade" id="{{group}}-list" role="tabpanel" aria-labelledby="{{group}}">
+                        <div class="container">
+                            <div class="list-header">
+                                <h3>{{group}}'s list</h3>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12 px-0">
+                                    <div class="table-wrap">
+                                        <table class="table table-responsive-xl">
+                                        <thead>
+                                            <tr>
+                                            <th style="width: 75px;">
+                                                <div class="dropdown">
+                                                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{cnt[0]}}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    Actions
+                                                    </button>
+                                                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton{{cnt[0]}}">
+                                                        <a class="dropdown-item" href="#" onclick = "select_all('{{group}}')">Select all</a>
+                                                        <a class="dropdown-item" href="#" onclick = "select_all('{{group}}', false)">Unselect all</a>
+                                                        <a class="dropdown-item" href="#" onclick = "delete_selected('')">Delete selected</a>
+                                                        <a class="dropdown-item" href="#">Run selected</a>
+                                                        <a class="dropdown-item" href="#">Run all</a>
+                                                    </div>
+                                                </div>
+                                            </th>
+                                            <th>Name</th>
+                                            <th style = "word-wrap: break-word; width: 300px;">Description</th>
+                                            <th>Run</th>
+                                            <th style="width: 140px;">Status</th>
+                                            <th style = "max-width:100px; padding: 20px;">
+                                                <div type = "button" class="create_button" data-toggle="modal" data-target=".create-tests-modal" onclick="getElementById('group_type').setAttribute('value', '{{group}}')">Create Test</div>
+                                            </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for test_case in service_structure[test_type][group] %}
+                                            <tr class="alert" role="alert">
+                                                <td>
+                                                    <label class="checkbox-wrap checkbox-primary">
+                                                        <input class="{{group}}-checks" type="checkbox">
+                                                        <span class="checkmark"></span>
+                                                    </label>
+                                                </td>
+                                            <td class="align-items-center">
+                                                <div class="name">
+                                                    <span>{{test_case["test_name"]}}</span>
+                                                </div>
+                                            </td>
+                                            <td class="align-items-center">
+                                                <div class="description">
+                                                    <span>{{test_case["description"]}}</span>
+                                                </div>
+                                            </td>
+                                            <td> <div class="play_button" id="{{test_case['test_name']}}-button" play_link="test_case['link_test_api']"></div></td>
+                                            <td class="status"><span class="active" id="{{test_case['test_name']}}-status">{{test_case['status']}}</span></td>
+                                            <td>
+                                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                                <span aria-hidden="true"><i class="fa fa-close"></i></span>
+                                            </button>
+                                            </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endfor %}
+                <div class="modal fade create-tests-modal" tabindex="-1" role="dialog" aria-labelledby="create-tests-modal" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="groupModalLabel">Create Test</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <form method="post" enctype="multipart/form-data">
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <input type="hidden" name="form_name" id = "test_form_name" value="test" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="name">Name:</label>
+                                        <input class="form-control" placeholder="Enter test name" id="test_name" name="test_name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="name">API URL:</label>
+                                        <input class="form-control" placeholder="Enter url" id="test_url" name="test_url" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="name">Description:</label>
+                                        <input class="form-control" placeholder="Enter description" id="description" name="description" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <input type="hidden" name="parent_group_type" id = "group_type" value="" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="formFile" class="form-label">Config file</label>
+                                        <input class="form-control" style="padding-bottom: 2.5rem!important;" type="file" name="file" id="file">
+                                    </div> 
+                                </div>
+                                <div class="modal-footer">
+                                <button type="reset" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-primary" name="createbtn">Create</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
+
     <!-- Demo content-->
 
     <script>
@@ -190,8 +326,36 @@
         function logout() {
             location.replace("{{url_for('logout')}}")
         }
+        
+        (function($) {
+        "use strict";
+        $('[data-toggle="tooltip"]').tooltip()
+        })(jQuery);
+
+        function toggle_table(id) {
+            $("#listTabs").children().removeClass("show active")
+            var element = document.getElementById(id);
+            element.classList.add("show")
+            element.classList.add("active")
+        }
+
+        function select_all(group, checked = true) {
+            var className = group + "-checks";
+            var elements = document.getElementsByClassName(className);
+            for (var i = 0, len = elements.length; i < len; i++) {
+                elements[i].checked = checked;
+            }
+        }
+
+        function delete_selected(group, checked = true) {
+            var className = group + "-checks";
+            var elements = document.getElementsByClassName(className);
+            for (var i = 0, len = elements.length; i < len; i++) {
+                elements[i].checked = checked;
+            }
+        }
 
     </script>
 </body>
-
 </html>
+

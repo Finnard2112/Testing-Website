@@ -9,12 +9,12 @@ import json
 import config
 import pytz
 import jwt
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, and_
 import requests
 from werkzeug.utils import secure_filename
-from db_init.db_init import Tests_Registration, User_Info
+from db_init.db_init import Tests_Registration, User_Info, Group, Test
 import webbrowser
 
 
@@ -137,14 +137,67 @@ def logout():
     session["token"] = None
     return redirect(url_for('login'))
 
+@app.route('/experiment', methods = ["GET"])
+@login_required
+def experiment():
+    service_structure ={}
+    groups = sql_session.query(Group).all()
+    for group in groups:
+        service_structure[group.name] = [x for x in group.tests]
+    return render_template("experiment.html", username=session["username"], service_structure = service_structure, is_in_registered_time=is_in_registered_time(), experiment = True)
+    
 
-@app.route('/services', methods=['GET'])
+@app.route('/services', methods=['GET', 'POST'])
 @login_required
 def services():
-    api_urls = {"api":{"iBeta" : "https://192.168.41.199:8090/api_test_fw/ibeta", "eKYC" : "", "Smart RPA": ""},
-                "load":{"Locust": "", "JMX": ""},
-                "performance":{"ETC": ""}}
-    return render_template("services.html", username=session["username"], api_urls = api_urls)
+    if (request.method == 'POST'):
+        form_data = request.form.to_dict()
+        print(form_data)
+        if (form_data["form_name"] == "group"):
+            duplicates = sql_session.query(Group).filter(Group.name == form_data["group_name"]).first()
+            print(duplicates)
+            if (duplicates is not None):
+                flash("Không thể đặt tên nhóm trùng với một nhóm khác")
+                print("HERE")
+            else:
+                group = Group(name=form_data["group_name"], type=form_data["group_type"])
+                sql_session.add(group)
+                sql_session.commit()
+        elif (form_data["form_name"] == "test"):
+            files = request.files.getlist('file')
+            myfiles = None
+            for file in files:
+                if file.filename !='':
+                    file = request.files['file']
+                    filename = secure_filename(file.filename)
+                    file_directory = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(file_directory)
+                    myfiles = {'file': open(file_directory,'rb')}
+            url = form_data["test_url"]
+            data_send = requests.request("POST", url, files=myfiles, verify= False)
+            if (not data_send.ok):
+                flash("Error: " + data_send.text)
+            else:
+                current_group = sql_session.query(Group).filter(Group.name == form_data["parent_group_type"]).first()
+                tc = Test(test_name = form_data["test_name"], groups = current_group, link_test_api = data_send.json()["link_test_api"], username = session["username"], description = form_data["description"], status = data_send.json()["status"], message = data_send.json()["message"], sessionid = data_send.json()["sessionid"])  
+                sql_session.add(tc)
+                sql_session.commit()
+            if (myfiles):
+                myfiles["file"].close()
+                os.remove(file_directory)
+        return redirect(url_for('services'))
+    service_structure = {}
+    sessions = {}
+    types = sql_session.query(Group).filter_by(type=Group.type).distinct()
+    for type in types:
+        service_structure[type.type] = {}
+    groups = sql_session.query(Group).all()
+    for group in groups:
+        service_structure[group.type][group.name] =  [x.__dict__ for x in group.tests]
+        for x in service_structure[group.type][group.name]:
+            if (x["sessionid"] is not None):
+                sessions[x["test_name"]] = x["sessionid"]
+    return render_template("services.html", username=session["username"], service_structure = service_structure, is_in_registered_time=is_in_registered_time(), sessions=sessions)
 
 # Receive loadtest_form data and sends it to API. 
 
@@ -162,7 +215,6 @@ def loadtest_form():
         except ValueError as verr:
             flash("Data không hợp lệ hoặc không đầy đủ")
             return redirect(url_for('loadtest_form'))
-        
         files = request.files.getlist('file')
         myfiles = None
         for file in files:
@@ -220,7 +272,7 @@ def autotest():
                 overlaps = sql_session.query(Tests_Registration).filter(start <= Tests_Registration.end_timestamp, end >= Tests_Registration.start_timestamp, Tests_Registration.status != 0).first()
                 if (overlaps):
                     flash("Không thể trùng với thời gian đã được đăng ký")
-                elif (start < pytz.utc.localize(datetime.utcnow()) - timedelta(minutes=2)):
+                elif (start < pytz.utc.localize(datetime.utcnow()) - timedelta(minutes=5)):
                     flash("Không thể test tải trong quá khứ")
                 else:
                     new_test = Tests_Registration(start_timestamp = start, end_timestamp = end, status = 1, author = session["username"])
@@ -266,7 +318,6 @@ def autotest():
         if (session.get("first_login") == True):
             first_login = True
             session["first_login"] = False
-        
         return render_template('test_registration.html', events=events, username=session["username"], is_in_registered_time=is_in_registered_time(), role=session.get("role"), first_login = first_login)
 
 if __name__ == '__main__':

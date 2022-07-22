@@ -256,7 +256,7 @@ padding: 0px 2px 4px 4px;
 
 /* Tabs*/
 section {
-  padding: 60px 0;
+  padding: 40px 0;
 }
 
 section .section-title {
@@ -294,9 +294,10 @@ section .section-title {
 }
 
 
-.btn:hover {
+.btn-header:hover {
   background-color: #4d85ff;
 }
+
 
 .loader {
   border: 5px solid #f3f3f3; /* Light grey */
@@ -315,4 +316,17 @@ section .section-title {
 .flex {
   display: flex;
   align-items: center;
+}
+
+
+.list-header {
+  text-align: center;
+  background: #f4f4f4;
+  color: black;
+  font-size: 7px;
+}
+
+.table thead th {
+  vertical-align: middle;
+  border-bottom: 2px solid #dee2e6;
 }

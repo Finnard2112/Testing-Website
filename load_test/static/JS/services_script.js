@@ -43,18 +43,19 @@ function status_check(name, session_id) {
         xhr.onload = function () {
             const response = JSON.parse(this.responseText);
             service_status = "#"+name+"-status"
-            current_id = "#" + name
+            current_id = "#" + name + "-button"
             if (response.status == 0) {
-                    $(service_status).text("Đang chạy...").css("color","green")
-                    if (!($(current_id).hasClass('paused'))) {
-                        $(current_id).toggleClass('paused');
-                    }
+                document.getElementById(service_status).className = "active";
+                document.getElementById(service_status).textContent = "Đang chạy"
+                if (!($(current_id).hasClass('paused'))) {
+                    $(current_id).toggleClass('paused');
+                }
             } else if (response.status == 1) {
-                    $(service_status).text("Đã hoàn thành").css("color","blue");
-                    document.cookie = name+'=; Max-Age=-99999999;';
-                    if (($(current_id).hasClass('paused'))) {
-                        ($(current_id).toggleClass('paused'));
-                    }
+                document.getElementById(service_status).className = "completed";
+                document.getElementById(service_status).textContent = "Đã hoàn thành"
+                if (($(current_id).hasClass('paused'))) {
+                    ($(current_id).toggleClass('paused'));
+                }
             }
         }
     xhr.open("GET", "https://192.168.41.199:8090/status_service/"+ session_id);
