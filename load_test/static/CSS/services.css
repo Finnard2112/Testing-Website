@@ -100,7 +100,7 @@ body {
     .table tbody td.status .completed {
       background: #deddfd;
       color: #0c0ccf; }
-      .table tbody td.status .waiting:after {
+      .table tbody td.status .completed:after {
         background: #281df2; }
     .table tbody td .email span {
       display: block; }
@@ -182,4 +182,34 @@ body {
     background-color: #0e6cbe;
   }
   
-  
+  .loader {
+    width: 72px;
+    height: 72px;
+    border: 5px solid rgb(0, 0, 0);
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    display: inline-block;
+    box-sizing: border-box;
+    animation: rotation 1s linear infinite;
+    }
+
+    @keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+    } 
+
+    .loader-modal-lg .loader-modal-dialog{
+      display: table;
+      position: relative;
+      margin: 0 auto;
+      top: calc(50% - 24px);
+    }
+    
+    .loader-modal-lg .loader-modal-dialog .loader-modal-content{
+      background-color: transparent;
+      border: none;
+    }

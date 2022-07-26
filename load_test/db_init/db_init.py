@@ -33,6 +33,7 @@ class Group(Base):
    id = Column(Integer, primary_key = True)
    name = Column(String)
    type = Column(String)
+   username = Column(String)
 
 class Test(Base):
    __tablename__ = 'tests'
@@ -40,13 +41,10 @@ class Test(Base):
    id = Column(Integer, primary_key = True)
    groupid = Column(Integer, ForeignKey('groups.id'))
    test_name = Column(String)
-   link_test_api = Column(String)
    status = Column(String)
    message = Column(String)
-   username = Column(String)
    description = Column(String)
    groups = relationship("Group", back_populates = "tests")
-   sessionid = Column(String)
 
 Group.tests = relationship("Test", order_by = Test.id, back_populates = "groups")
 # Base.metadata.create_all(engine)

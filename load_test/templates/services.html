@@ -23,38 +23,7 @@
 
 
     <script>
-
         $(document).ready(function () {
-            var play_btn = $('.play_button');
-            play_btn.click(function() {
-                var service_name = $(this).attr("id");
-                // if ($(this).hasClass('paused')) {
-                //     var session_id = getCookie($(this).attr("id"))
-                //     var settings = {
-                //         "url": "https://192.168.41.199:8090/stop_service",
-                //         "method": "POST",
-                //         "timeout": 0,
-                //         "headers": {
-                //             "Content-Type": "application/json"
-                //         },
-                //         "data": JSON.stringify({
-                //             "session_id": parseInt(session_id)
-                //         }),
-                //         };
-
-                //         $.ajax(settings).done(function (response) {
-                //         if (response.status == 0) {
-                //             document.cookie = service_name+'=; Max-Age=-99999999;';
-                //             var service_status =  "#"+service_name+"-status"
-                //             $(service_status).text("Đã dừng").css("color","red")
-                //         }
-                //         });
-                // } else {
-                start_service($(this).attr("id"), $(this).attr("play_link")) ;
-                // }
-                $(this).toggleClass('paused');
-            })
-
             toastr.options = {
                 "tapToDismiss": true,
                 "closeButton": true,
@@ -133,8 +102,8 @@
             </nav>
             <div class="tab-content py-3 px-3 px-sm-0" id="nav-tabContent">
                 {% for test_type in service_structure %}
-                    {% if test_type == "api" %}
-                    <div class="tab-pane fade show active" id="nav-api" role="tabpanel" aria-labelledby="nav-api-tab">
+                    {% if loop.first %}
+                    <div class="tab-pane fade show active" id="nav-{{test_type}}" role="tabpanel" aria-labelledby="nav-{{test_type}}-tab">
                     {% else %}
                     <div class="tab-pane fade" id="nav-{{test_type}}" role="tabpanel" aria-labelledby="nav-{{test_type}}-tab">
                     {% endif %}
@@ -146,11 +115,7 @@
                                 <div class="row py-3">
                                     {% for group in service_structure[test_type] %}
                                         <div class="col-3 py-1 d-inline-flex justify-content-center">
-                                            {% if loop.first %}
                                             <button type="button" class="sv_button nav-link" id="{{group}}" onclick="toggle_table('{{group}}-list')" role="button" > {{group}}</button>
-                                            {% else %}
-                                            <button type="button" class="sv_button nav-link" id="{{group}}" onclick="toggle_table('{{group}}-list')" role="button" > {{group}}</button>
-                                            {% endif %}
                                         </div>
                                     {% endfor %}
                                 </div>
@@ -175,7 +140,7 @@
                             <div class="modal-body">
                                 <div class="form-group">
                                     <label for="name">Name:</label>
-                                    <input class="form-control" placeholder="Enter group name" id="name" name="group_name" required>
+                                    <input class="form-control text_input" placeholder="Enter group name" id="name" name="group_name" required>
                                 </div>
                                 <div class="form-group">
                                     <input type="hidden" name="group_type" id = "hidden_val_group" value=""/>
@@ -195,7 +160,11 @@
                 {% for test_type in service_structure %}
                 {% for group in service_structure[test_type] %}
                 {% if cnt.append(cnt.pop() + 1) %}{% endif %}
+                {% if current_tab == group %}
+                    <div class="tab-pane fade show active" id="{{group}}-list" role="tabpanel" aria-labelledby="{{group}}">
+                {% else %}
                     <div class="tab-pane fade" id="{{group}}-list" role="tabpanel" aria-labelledby="{{group}}">
+                {% endif %}
                         <div class="container">
                             <div class="list-header">
                                 <h3>{{group}}'s list</h3>
@@ -208,24 +177,29 @@
                                             <tr>
                                             <th style="width: 75px;">
                                                 <div class="dropdown">
-                                                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{cnt[0]}}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    {% if service_structure[test_type][group]|length == 0 %}
+                                                    <button class="btn dropdown-toggle" type="button" style="background: #0b5394; color:#ffffff;" id="dropdownMenuButton{{cnt[0]}}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" disabled>
                                                     Actions
                                                     </button>
+                                                    {% else %}
+                                                    <button class="btn dropdown-toggle" type="button" style="background: #0b5394; color:#ffffff;" id="dropdownMenuButton{{cnt[0]}}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        Actions
+                                                    </button>
+                                                    {% endif %}
                                                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton{{cnt[0]}}">
-                                                        <a class="dropdown-item" href="#" onclick = "select_all('{{group}}')">Select all</a>
-                                                        <a class="dropdown-item" href="#" onclick = "select_all('{{group}}', false)">Unselect all</a>
-                                                        <a class="dropdown-item" href="#" onclick = "delete_selected('')">Delete selected</a>
-                                                        <a class="dropdown-item" href="#">Run selected</a>
-                                                        <a class="dropdown-item" href="#">Run all</a>
+                                                        <a class="dropdown-item" href="javascript:;"  onclick = "select_all('{{group}}')">Select all</a>
+                                                        <a class="dropdown-item" href="javascript:;" onclick = "select_all('{{group}}', false)">Unselect all</a>
+                                                        <a class="dropdown-item" href="javascript:;" onclick = "delete_selected('{{group}}')">Delete selected</a>
+                                                        <a class="dropdown-item" href="javascript:;" onclick = "run_test(null, null, group = '{{group}}')">Run selected</a>
                                                     </div>
                                                 </div>
                                             </th>
                                             <th>Name</th>
-                                            <th style = "word-wrap: break-word; width: 300px;">Description</th>
-                                            <th>Run</th>
-                                            <th style="width: 140px;">Status</th>
+                                            <th style = "word-wrap: break-word; width: 230px;">Description</th>
+                                            <th style = "width: 182px;">Run</th>
+                                            <th style="width: 194px;">Status</th>
                                             <th style = "max-width:100px; padding: 20px;">
-                                                <div type = "button" class="create_button" data-toggle="modal" data-target=".create-tests-modal" onclick="getElementById('group_type').setAttribute('value', '{{group}}')">Create Test</div>
+                                                <div type = "button" class="create_button" data-toggle="modal" data-target=".create-tests-modal" onclick="getElementById('parent_group_type').setAttribute('value', '{{group}}')">Create Test</div>
                                             </th>
                                             </tr>
                                         </thead>
@@ -234,25 +208,27 @@
                                             <tr class="alert" role="alert">
                                                 <td>
                                                     <label class="checkbox-wrap checkbox-primary">
-                                                        <input class="{{group}}-checks" type="checkbox">
+                                                        <input class="{{group}}-checks" test_name = "{{test_case['test_name']}}" type="checkbox">
                                                         <span class="checkmark"></span>
                                                     </label>
-                                                </td>
+                                                </td> 
                                             <td class="align-items-center">
                                                 <div class="name">
                                                     <span>{{test_case["test_name"]}}</span>
                                                 </div>
                                             </td>
                                             <td class="align-items-center">
-                                                <div class="description">
+                                                <div class="description">   
                                                     <span>{{test_case["description"]}}</span>
                                                 </div>
                                             </td>
-                                            <td> <div class="play_button" id="{{test_case['test_name']}}-button" play_link="test_case['link_test_api']"></div></td>
+                                            {% set test_name = test_case['test_name'] %}
+                                            {% set run_id = test_name ~ '-button' %}
+                                            <td> <div class="play_button" id={{run_id}} play_link="test_case['link_test_api']" onclick="run_test(['{{test_name}}'],'{{run_id}}', null)"></div></td>
                                             <td class="status"><span class="active" id="{{test_case['test_name']}}-status">{{test_case['status']}}</span></td>
                                             <td>
-                                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                                <span aria-hidden="true"><i class="fa fa-close"></i></span>
+                                                <button type="button" class="close" data-dismiss="alert" onclick = "delete_selected(null, true, '{{test_name}}')"aria-label="Close">
+                                                <span aria-hidden="true"><i class="fa fa-close" style="font-size:23px;"></i></span>
                                             </button>
                                             </td>
                                             </tr>
@@ -275,25 +251,21 @@
                                     <span aria-hidden="true">&times;</span>
                                 </button>
                             </div>
-                            <form method="post" enctype="multipart/form-data">
+                            <form id="test_form" method="post" role="form" enctype="multipart/form-data">
                                 <div class="modal-body">
                                     <div class="form-group">
-                                        <input type="hidden" name="form_name" id = "test_form_name" value="test" />
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="name">Name:</label>
-                                        <input class="form-control" placeholder="Enter test name" id="test_name" name="test_name" required>
+                                        <input type="hidden" name="test_form_name" id = "test_form_name" value="test" />
                                     </div>
                                     <div class="form-group">
                                         <label for="name">API URL:</label>
-                                        <input class="form-control" placeholder="Enter url" id="test_url" name="test_url" required>
+                                        <input class="form-control" placeholder="Enter url" id="test_url" name="test_url" value="{{create_test}}" required>
                                     </div>
                                     <div class="form-group">
                                         <label for="name">Description:</label>
-                                        <input class="form-control" placeholder="Enter description" id="description" name="description" required>
+                                        <input class="form-control text_input" placeholder="Enter description" id="description" name="description" required>
                                     </div>
                                     <div class="form-group">
-                                        <input type="hidden" name="parent_group_type" id = "group_type" value="" />
+                                        <input type="hidden" name="parent_group_type" id = "parent_group_type" value="" />
                                     </div>
                                     <div class="mb-3">
                                         <label for="formFile" class="form-label">Config file</label>
@@ -305,6 +277,14 @@
                                 <button type="submit" class="btn btn-primary" name="createbtn">Create</button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal fade loader-modal-lg" data-backdrop="static" data-keyboard="false" tabindex="-1" id = "loader-modal">
+                    <div class="modal-dialog loader-modal-dialog modal-sm">
+                        <div class="loader-modal-content modal-content" style="width: 48px">
+                            <span class="fa fa-spinner fa-spin fa-3x"></span>
                         </div>
                     </div>
                 </div>
@@ -332,7 +312,18 @@
         $('[data-toggle="tooltip"]').tooltip()
         })(jQuery);
 
+        function check_selected(group) {
+            var className = group + "-checks";
+            var elements = document.getElementsByClassName(className);
+            var test_list = [];
+            for (var i = 0, len = elements.length; i < len; i++) {
+                test_list.push(elements[i].getAttribute('test_name'));
+            }
+            return test_list;
+        }
+
         function toggle_table(id) {
+            console.log("here")
             $("#listTabs").children().removeClass("show active")
             var element = document.getElementById(id);
             element.classList.add("show")
@@ -347,13 +338,104 @@
             }
         }
 
-        function delete_selected(group, checked = true) {
+        function deleteOne(group) {
             var className = group + "-checks";
             var elements = document.getElementsByClassName(className);
             for (var i = 0, len = elements.length; i < len; i++) {
-                elements[i].checked = checked;
+                elements[i].checked
             }
         }
+
+        function delete_selected(group, single=false) {
+            if (single == false) {
+                data = check_selected(group)
+            } else {
+
+            }
+            var settings = {
+                "url": "{{delete_test}}",
+                "method": "POST",
+                "timeout": 0,
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "data": JSON.stringify(data),
+                };
+            $.ajax(settings).done(function (response) {
+            if (response.status == 0) {
+                settings["url"] = "{{url_for('logout')}}"
+                settings["method"] = "DELETE"
+            $.ajax(settings).done(function (response) {
+                toastr.success('Đã xóa thành công');
+                });  
+                }
+            });  
+        }
+
+        function run_test(test_name, id, group) {
+            console.log(test_name)
+            if (id != null) {
+                var element = document.getElementById(id);
+                if (element.classList.contains("play_button")) {
+                    element.classList.toggle("play_button");
+                    element.classList.toggle("loader");
+                } else {
+                    return
+                }
+            }
+            else {
+                $('#loader-modal').modal('show');
+                test_name = check_selected(group)
+            }
+            for (let i = 0; i < test_name.length; i++) {
+                status_indicator = test_name[i] + "-status"
+                document.getElementById(status_indicator).className = 'waiting';
+                document.getElementById(status_indicator).textContent = "Running";
+            }
+            var settings = {
+                "url": "{{run_test}}",
+                "method": "POST",
+                "timeout": 0,
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "data": JSON.stringify(test_name),
+                };
+
+                $.ajax(settings).done(function (response) {
+                    if (response.status == 0 ) {
+                        if (id != null) {
+                        element.classList.toggle("loader");
+                        element.classList.toggle("play_button");
+                        } else {
+                            $('#loader-modal').modal('hide');
+                        }
+                        for (let i = 0; i < test_name.length; i++) {
+                            toastr.success('Chạy test thành công');
+                            status_indicator = test_name[i] + "-status"
+                            document.getElementById(status_indicator).className = 'completed';
+                            document.getElementById(status_indicator).textContent = "Completed";
+                        }
+                    } else {
+                        toastr.error('Việc chạy test đã gặp lỗi');
+                        for (let i = 0; i < test_name.length; i++) {
+                            status_indicator = test_name[i] + "-status"
+                            document.getElementById(status_indicator).className = 'error';
+                            document.getElementById(status_indicator).textContent = "Error";
+                        }
+                    }
+            });
+        }
+        $('.text_input').on('input', function() {
+        var c = this.selectionStart,
+            r = /[^a-z0-9]/gi,
+            v = $(this).val();
+        if(r.test(v)) {
+            $(this).val(v.replace(r, ''));
+            c--;
+        }
+        this.setSelectionRange(c, c);
+        });
 
     </script>
 </body>

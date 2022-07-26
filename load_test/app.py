@@ -137,33 +137,28 @@ def logout():
     session["token"] = None
     return redirect(url_for('login'))
 
-@app.route('/experiment', methods = ["GET"])
-@login_required
-def experiment():
-    service_structure ={}
-    groups = sql_session.query(Group).all()
-    for group in groups:
-        service_structure[group.name] = [x for x in group.tests]
-    return render_template("experiment.html", username=session["username"], service_structure = service_structure, is_in_registered_time=is_in_registered_time(), experiment = True)
-    
-
 @app.route('/services', methods=['GET', 'POST'])
 @login_required
 def services():
+    data_send = requests.request("GET", os.getenv("LIST_SERVICE_URL"), verify= False)
+    tests_list = data_send.json()
+    tests = sql_session.query(Test).all()
+    for entry in tests:
+        if (entry.test_name not in tests_list):
+            entry.delete()
+    sql_session.commit()
     if (request.method == 'POST'):
         form_data = request.form.to_dict()
-        print(form_data)
-        if (form_data["form_name"] == "group"):
+        if (form_data["test_form_name"] == "group"):
             duplicates = sql_session.query(Group).filter(Group.name == form_data["group_name"]).first()
-            print(duplicates)
             if (duplicates is not None):
                 flash("Không thể đặt tên nhóm trùng với một nhóm khác")
-                print("HERE")
             else:
-                group = Group(name=form_data["group_name"], type=form_data["group_type"])
+                group = Group(name=form_data["group_name"], type=form_data["group_type"], username=session["username"])
                 sql_session.add(group)
                 sql_session.commit()
-        elif (form_data["form_name"] == "test"):
+        elif (form_data["test_form_name"] == "test"):
+            session["current_tab"] = form_data["parent_group_type"]
             files = request.files.getlist('file')
             myfiles = None
             for file in files:
@@ -175,29 +170,43 @@ def services():
                     myfiles = {'file': open(file_directory,'rb')}
             url = form_data["test_url"]
             data_send = requests.request("POST", url, files=myfiles, verify= False)
-            if (not data_send.ok):
-                flash("Error: " + data_send.text)
+            if (data_send.json()["status"] == 1):
+                flash("Error: " + data_send.json()["msg"])
             else:
+                status = "Error"
+                if (data_send.json()["status"] == 0):
+                    status = "Ready"
                 current_group = sql_session.query(Group).filter(Group.name == form_data["parent_group_type"]).first()
-                tc = Test(test_name = form_data["test_name"], groups = current_group, link_test_api = data_send.json()["link_test_api"], username = session["username"], description = form_data["description"], status = data_send.json()["status"], message = data_send.json()["message"], sessionid = data_send.json()["sessionid"])  
+                tc = Test(test_name = data_send.json()["id"], groups = current_group, description = form_data["description"], status = status, message = data_send.json()["msg"])  
                 sql_session.add(tc)
                 sql_session.commit()
             if (myfiles):
                 myfiles["file"].close()
+                print(file_directory)
                 os.remove(file_directory)
-        return redirect(url_for('services'))
+        return redirect(url_for("services"))
+    elif(request.method == "DELETE"):
+        json_data = flask.request.json
+        for test in json_data:    
+            sql_session.query(Test).filter(Test.test_name == test).first().delete()
+        sql_session.commit()
+        return jsonify(status = 0)
     service_structure = {}
     sessions = {}
     types = sql_session.query(Group).filter_by(type=Group.type).distinct()
-    for type in types:
-        service_structure[type.type] = {}
-    groups = sql_session.query(Group).all()
+    if(types.count() < 3):
+        types = ["api", "load", "performance"]
+        for type in types:
+            service_structure[type] = {}
+    else:
+        for type in types:
+            service_structure[type.type] = {}
+    groups = sql_session.query(Group).filter(Group.username == session["username"])
     for group in groups:
         service_structure[group.type][group.name] =  [x.__dict__ for x in group.tests]
-        for x in service_structure[group.type][group.name]:
-            if (x["sessionid"] is not None):
-                sessions[x["test_name"]] = x["sessionid"]
-    return render_template("services.html", username=session["username"], service_structure = service_structure, is_in_registered_time=is_in_registered_time(), sessions=sessions)
+    return render_template("services.html", username=session["username"], service_structure = service_structure, is_in_registered_time=is_in_registered_time(), 
+                            sessions=sessions, run_test = os.getenv("RUN_TEST_URL"), create_test = os.getenv("CREATE_TEST_URL"), list_services = os.getenv("LIST_SERVICE_URL"),
+                            delete_test = os.getenv("DELETE_TEST_URL"), current_tab = session.get("current_tab"))
 
 # Receive loadtest_form data and sends it to API. 
 
