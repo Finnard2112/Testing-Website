@@ -30,6 +30,80 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: groups; Type: TABLE; Schema: autotest; Owner: postgres
+--
+
+CREATE TABLE autotest.groups (
+    id integer NOT NULL,
+    name character varying,
+    type character varying,
+    username character varying
+);
+
+
+ALTER TABLE autotest.groups OWNER TO postgres;
+
+--
+-- Name: groups_id_seq; Type: SEQUENCE; Schema: autotest; Owner: postgres
+--
+
+CREATE SEQUENCE autotest.groups_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE autotest.groups_id_seq OWNER TO postgres;
+
+--
+-- Name: groups_id_seq; Type: SEQUENCE OWNED BY; Schema: autotest; Owner: postgres
+--
+
+ALTER SEQUENCE autotest.groups_id_seq OWNED BY autotest.groups.id;
+
+
+--
+-- Name: tests; Type: TABLE; Schema: autotest; Owner: postgres
+--
+
+CREATE TABLE autotest.tests (
+    id integer NOT NULL,
+    groupid integer,
+    test_name character varying,
+    status character varying,
+    message character varying,
+    description character varying
+);
+
+
+ALTER TABLE autotest.tests OWNER TO postgres;
+
+--
+-- Name: tests_id_seq; Type: SEQUENCE; Schema: autotest; Owner: postgres
+--
+
+CREATE SEQUENCE autotest.tests_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE autotest.tests_id_seq OWNER TO postgres;
+
+--
+-- Name: tests_id_seq; Type: SEQUENCE OWNED BY; Schema: autotest; Owner: postgres
+--
+
+ALTER SEQUENCE autotest.tests_id_seq OWNED BY autotest.tests.id;
+
+
+--
 -- Name: tests_registration; Type: TABLE; Schema: autotest; Owner: postgres
 --
 
@@ -102,6 +176,20 @@ ALTER SEQUENCE autotest.user_info_id_seq OWNED BY autotest.user_info.id;
 
 
 --
+-- Name: groups id; Type: DEFAULT; Schema: autotest; Owner: postgres
+--
+
+ALTER TABLE ONLY autotest.groups ALTER COLUMN id SET DEFAULT nextval('autotest.groups_id_seq'::regclass);
+
+
+--
+-- Name: tests id; Type: DEFAULT; Schema: autotest; Owner: postgres
+--
+
+ALTER TABLE ONLY autotest.tests ALTER COLUMN id SET DEFAULT nextval('autotest.tests_id_seq'::regclass);
+
+
+--
 -- Name: tests_registration id; Type: DEFAULT; Schema: autotest; Owner: postgres
 --
 
@@ -116,19 +204,36 @@ ALTER TABLE ONLY autotest.user_info ALTER COLUMN id SET DEFAULT nextval('autotes
 
 
 --
+-- Data for Name: groups; Type: TABLE DATA; Schema: autotest; Owner: postgres
+--
+
+COPY autotest.groups (id, name, type, username) FROM stdin;
+1	Test Group	api	huynq
+2	huynq group	api	huynq
+\.
+
+
+--
+-- Data for Name: tests; Type: TABLE DATA; Schema: autotest; Owner: postgres
+--
+
+COPY autotest.tests (id, groupid, test_name, status, message, description) FROM stdin;
+4	1	STT1	Ready	success	hello
+5	1	TTS1	Ready	success	hello
+6	1	IBeta1	Ready	success	hello
+7	1	STT2	Ready	success	hello
+8	1	TTS2	Ready	success	tss2
+\.
+
+
+--
 -- Data for Name: tests_registration; Type: TABLE DATA; Schema: autotest; Owner: postgres
 --
 
 COPY autotest.tests_registration (id, start_timestamp, end_timestamp, status, author) FROM stdin;
-14	2022-07-14 11:02:00+07	2022-07-15 11:02:00+07	1	huynq
-12	2022-07-07 10:58:00+07	2022-07-08 10:58:00+07	0	huynq
-15	2022-07-19 11:08:00+07	2022-07-20 11:08:00+07	1	hungle
-16	2022-07-06 11:12:00+07	2022-07-07 11:12:00+07	1	hungle
-13	2022-07-12 11:00:00+07	2022-07-13 11:00:00+07	0	huynq
-18	2022-07-09 14:27:00+07	2022-07-10 14:27:00+07	0	hungle
-17	2022-07-07 11:13:00+07	2022-07-08 11:13:00+07	1	huynq
-19	2022-07-21 15:04:00+07	2022-07-22 15:04:00+07	1	huynq
-20	2022-07-09 16:43:00+07	2022-07-10 16:43:00+07	1	huynq
+1	2022-07-29 09:08:00+07	2022-07-30 09:09:00+07	1	huynq
+2	2022-07-22 09:39:00+07	2022-07-23 09:39:00+07	1	huynq
+3	2022-07-25 09:45:00+07	2022-07-26 09:45:00+07	1	huynq
 \.
 
 
@@ -141,10 +246,24 @@ COPY autotest.user_info (id, username, role) FROM stdin;
 
 
 --
+-- Name: groups_id_seq; Type: SEQUENCE SET; Schema: autotest; Owner: postgres
+--
+
+SELECT pg_catalog.setval('autotest.groups_id_seq', 2, true);
+
+
+--
+-- Name: tests_id_seq; Type: SEQUENCE SET; Schema: autotest; Owner: postgres
+--
+
+SELECT pg_catalog.setval('autotest.tests_id_seq', 8, true);
+
+
+--
 -- Name: tests_registration_id_seq; Type: SEQUENCE SET; Schema: autotest; Owner: postgres
 --
 
-SELECT pg_catalog.setval('autotest.tests_registration_id_seq', 20, true);
+SELECT pg_catalog.setval('autotest.tests_registration_id_seq', 3, true);
 
 
 --
@@ -152,6 +271,22 @@ SELECT pg_catalog.setval('autotest.tests_registration_id_seq', 20, true);
 --
 
 SELECT pg_catalog.setval('autotest.user_info_id_seq', 1, false);
+
+
+--
+-- Name: groups groups_pkey; Type: CONSTRAINT; Schema: autotest; Owner: postgres
+--
+
+ALTER TABLE ONLY autotest.groups
+    ADD CONSTRAINT groups_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: tests tests_pkey; Type: CONSTRAINT; Schema: autotest; Owner: postgres
+--
+
+ALTER TABLE ONLY autotest.tests
+    ADD CONSTRAINT tests_pkey PRIMARY KEY (id);
 
 
 --
@@ -176,6 +311,14 @@ ALTER TABLE ONLY autotest.user_info
 
 ALTER TABLE ONLY autotest.user_info
     ADD CONSTRAINT user_info_username_key UNIQUE (username);
+
+
+--
+-- Name: tests tests_groupid_fkey; Type: FK CONSTRAINT; Schema: autotest; Owner: postgres
+--
+
+ALTER TABLE ONLY autotest.tests
+    ADD CONSTRAINT tests_groupid_fkey FOREIGN KEY (groupid) REFERENCES autotest.groups(id);
 
 
 --
