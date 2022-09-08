@@ -1,92 +1,90 @@
-# loctust-autotest-grpc-socket
+# Website testing
 
-## Cách chạy:
+## How to run:
 
-Chạy ./load_test/app.py với python.exe
+Run ./load_test/app.py with python.exe
 
-## Cấu hình các biến môi trường:
+## Env config:
 
 File env: ./load_test/.env
 
-Trong file env có thể thay đổi các link API và link Database
+You can change API links and DB link in the .env file
 
-## Cấu trúc file:
+## Folder Structure:
 
-Project sẽ được chia ra làm 2 folder chính có code và một folder chứa cấu hình các table cần thiết
+The project has two main folders that have written code and a folder with necessary table configs
 
 1. DB folder
 
-- Chứa DB.sql. File có các câu lệnh SQL để lâp các table cần thiết
+- Has DB.sql. This file has necessary SQL code to setup needed tables
 
 2. venv folder
 
-- Chứa venv và các package cần thiết
+- Has venv and necessary packages
 
-3. load_test folder: Folder chứa code cho flask
+3. load_test folder: Folder that has flask code
 
-Trong này có các folder sau:
+Child folders:
 
 - db_init:
 
-+ db_init.py: Chứa config của SQLAlchemy ORM. Table User_Info không cần thiết, nhưng có thể bỏ comment phần này để chứa dữ liệu người dùng và phân quyền. 
++ db_init.py: has SQLAlchemy ORM config. Table User_Info isn't necessary, but you can uncomment it to hold User Info or access priveleges. 
 Note: Bỏ comment phần "# Base.metadata.create_all(engine)" để tạo table mới khi chạy
 
-+ insert_data.py: Có thể dùng để tạo các row mới trong test table. Việc tạo các row này trong app.py có thể dẫn đến duplicates
++ insert_data.py: Used to manually add rows to tables. Adding rows in app.py could lead to duplicates
 
 - migrations:
 
-Folder này không dùng đến
+I don't write code in here
 
 - static:
 
 + CSS:
-Chứa các file CSS. Những file: calendarStyle, coreMain, dayGridmain, icomoonStyle, selection.json đều được download và dùng theo cái calendar. 
+Has CSS files: calendarStyle, coreMain, dayGridmain, icomoonStyle, selection.json are all downloaded to use with calendar 
 
-services.css là file css được dùng riêng cho trang services.
+services.css is a css file that's used for the services page
 
-style.css dùng chung cho trang autotest và services.
+style.css is used for autotest and services.
 
-style.scss.css là file được generate ra từ file style.css để dùng cho một vài nút bấm trong services
+style.scss.css là file that was generated from style.scss to style some buttons in services
 
 + images:
 
-Folder riêng để chứa các image. Hiện tại không dùng đến nhưng sau này có thể dùng đến
+Folder that holds images. No images are in use currently
 
 + JS:
 
-Chứa các file Javascript. coreMain, daygridMain, interactionMain được dùng bởi cái calendar. 
+Holds javascript files. coreMain, daygridMain, interactionMain are all used by the calendar. 
 
-script.js chứa javascript cho datetimepicker
+script.js has javascript for datetimepicker
 
-services_script.js chứa các function hỗ trợ cho trang services. 
+services_script.js has function to support services webpage. 
 
 + sass:
 
-Dùng để chứa các file scss có thể dùng đến sau này. Trong flask sẽ có một module đọc file này và generate ra những file css mới tương ứng 
+Holds scss files. There's a module in Flask that reads these files and generate corresponding css files.
 
 - templates:
 
-+ Load test system.html: dùng cho form locust. 
++ Load test system.html: Used for Locust form. 
 
-+ login.html: dùng cho trang login
++ login.html: used for login
 
-+ services.html: dùng cho services
++ services.html: used for services
 
-+ test_registration.html: dùng cho trang có calendar
++ test_registration.html:used for calendar page
 
 - .env: 
 
-Chứa các biến môi trường
+Holds environment variables
 
 - app.py:
 
-Chứa code Flask
+Holds Python Flask code
 
 - config.py:
 
-config cho Flask. 
-
-Được dùng đến ở dòng 23 trong app.py. Có thể thay đổi chế độ development/ production hay thay các config khác.
+Holds Flask configs and is used on line 23 of app.py. You could change development/ production mode or any other config here.
 
 
 
